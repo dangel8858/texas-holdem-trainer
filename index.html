@@ -1,0 +1,1625 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>德州扑克翻前训练器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f2;
+      --panel: #ffffff;
+      --ink: #17201a;
+      --muted: #667064;
+      --line: #dfe5da;
+      --accent: #0f7b68;
+      --accent-2: #b33d2e;
+      --soft: #e9f4ef;
+      --warn: #fff4d8;
+      --shadow: 0 14px 40px rgba(25, 36, 28, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(15, 123, 104, 0.10), transparent 34%),
+        linear-gradient(315deg, rgba(179, 61, 46, 0.10), transparent 38%),
+        var(--bg);
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px 0 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .group-tagline {
+      margin: 6px 0 0;
+      color: #0f7b68;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(74px, 1fr));
+      gap: 10px;
+      min-width: 270px;
+    }
+
+    .app-switch {
+      display: flex;
+      gap: 8px;
+      margin: 18px 0 0;
+      flex-wrap: wrap;
+    }
+
+    .app-switch button {
+      min-height: 40px;
+      padding: 9px 13px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .app-switch button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .stat {
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .stat strong {
+      font-size: 22px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    main.hidden {
+      display: none;
+    }
+
+    .trainer,
+    .side-panel {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .trainer {
+      padding: 24px;
+    }
+
+    .side-panel {
+      padding: 18px;
+    }
+
+    .table-zone {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+      min-height: 280px;
+    }
+
+    .position-box {
+      display: grid;
+      gap: 8px;
+      align-content: center;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .position {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .table {
+      width: min(330px, 42vw);
+      aspect-ratio: 1.55;
+      border-radius: 48%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.16), transparent 38%),
+        linear-gradient(145deg, #13806c, #0a5c4e);
+      border: 14px solid #5b3d2a;
+      box-shadow: inset 0 0 0 5px rgba(255,255,255,0.12), 0 18px 36px rgba(13, 44, 37, 0.24);
+      display: grid;
+      place-items: center;
+      color: white;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .table strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .hand-area {
+      display: grid;
+      justify-items: end;
+      gap: 12px;
+    }
+
+    .cards {
+      display: flex;
+      gap: 10px;
+      min-height: 132px;
+      align-items: center;
+    }
+
+    .card {
+      width: clamp(68px, 10vw, 92px);
+      aspect-ratio: 0.72;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #cfd6c9;
+      box-shadow: 0 10px 22px rgba(25, 36, 28, 0.14);
+      display: grid;
+      place-items: center;
+      font-size: clamp(30px, 5vw, 44px);
+      font-weight: 800;
+    }
+
+    .red {
+      color: #b62922;
+    }
+
+    .black {
+      color: #17201a;
+    }
+
+    .hand-code {
+      color: var(--muted);
+      font-size: 16px;
+      min-height: 22px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .actions.limp-actions {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 48px;
+      padding: 12px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(25, 36, 28, 0.14);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .raise {
+      background: var(--accent);
+      color: white;
+    }
+
+    .fold {
+      background: var(--accent-2);
+      color: white;
+    }
+
+    .call {
+      background: #d89432;
+      color: white;
+    }
+
+    .next {
+      background: #26322b;
+      color: white;
+    }
+
+    .ghost {
+      background: var(--soft);
+      color: var(--accent);
+      border: 1px solid #c9e4da;
+    }
+
+    .feedback {
+      margin-top: 18px;
+      min-height: 88px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fbfcfa;
+      padding: 14px;
+      display: grid;
+      align-content: center;
+      gap: 6px;
+    }
+
+    .feedback strong {
+      font-size: 18px;
+    }
+
+    .recommend-action {
+      display: inline-block;
+      margin: 0 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #17201a;
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .correct {
+      border-color: #9bd4c1;
+      background: #eefaf5;
+    }
+
+    .wrong {
+      border-color: #efb3a8;
+      background: #fff0ed;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .select-wrap {
+      display: grid;
+      gap: 6px;
+    }
+
+    select,
+    input {
+      min-height: 40px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+      padding: 8px 10px;
+      font: inherit;
+    }
+
+    input {
+      width: 100%;
+    }
+
+    h2 {
+      margin: 4px 0 10px;
+      font-size: 19px;
+    }
+
+    .rule-list,
+    .history {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .rule-list li,
+    .history li {
+      border-top: 1px solid var(--line);
+      padding-top: 9px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .history strong {
+      color: var(--ink);
+    }
+
+    .review-box {
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--warn);
+      border: 1px solid #eedba3;
+      color: #5b461b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .level-up {
+      margin-top: 12px;
+      display: none;
+      width: 100%;
+      background: #12362f;
+      color: white;
+    }
+
+    .level-up.show {
+      display: block;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .side-action {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .knowledge-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .knowledge-card {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .knowledge-topic {
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .knowledge-question {
+      font-size: 25px;
+      line-height: 1.25;
+      font-weight: 850;
+      margin-bottom: 18px;
+    }
+
+    .knowledge-options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .knowledge-options button {
+      text-align: left;
+      background: #fbfcfa;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-weight: 650;
+    }
+
+    .knowledge-options button.correct-answer {
+      border-color: #75b99f;
+      background: #e8f7f0;
+    }
+
+    .knowledge-options button.wrong-answer {
+      border-color: #e69a8e;
+      background: #fff0ed;
+    }
+
+    .knowledge-explain {
+      margin-top: 16px;
+      min-height: 80px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fbfcfa;
+      padding: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .knowledge-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .knowledge-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .knowledge-list li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+      padding: 10px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .knowledge-list strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .level-list {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 16px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .level-list li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fbfcfa;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .level-list li.active {
+      border-color: #9bd4c1;
+      background: #eefaf5;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .level-list li.done {
+      border-color: #c9e4da;
+      background: var(--soft);
+      color: #285a4c;
+    }
+
+    @media (max-width: 860px) {
+      header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .stats {
+        min-width: 0;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .knowledge-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .table-zone {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .hand-area {
+        justify-items: center;
+      }
+
+      .table {
+        width: min(320px, 86vw);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .app {
+        width: min(100% - 18px, 1180px);
+        padding-top: 16px;
+      }
+
+      .trainer,
+      .side-panel {
+        padding: 14px;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        min-height: 56px;
+      }
+
+      button:hover {
+        transform: none;
+        box-shadow: none;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .position {
+        font-size: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>德州扑克训练器</h1>
+        <p class="group-tagline">带娃读书运动育儿群专用</p>
+        <p class="subtitle">闯关练翻前决策，知识训练补规则、术语和底层原因。</p>
+      </div>
+      <div class="stats" id="statsPanel" aria-label="训练数据">
+        <div class="stat"><span>正确率</span><strong id="accuracy">0%</strong></div>
+        <div class="stat"><span>已练</span><strong id="total">0</strong></div>
+        <div class="stat"><span>连对</span><strong id="streak">0</strong></div>
+      </div>
+    </header>
+
+    <nav class="app-switch" aria-label="训练板块">
+      <button class="active" id="playModeButton" type="button">闯关训练</button>
+      <button id="knowledgeModeButton" type="button">知识训练</button>
+    </nav>
+
+    <main id="playMode">
+      <section class="trainer" aria-label="训练区">
+        <div class="toolbar">
+          <div class="select-wrap">
+            <label class="label" for="mode">训练模式</label>
+            <select id="mode">
+              <option value="all">全部位置</option>
+              <option value="early">前位：UTG / HJ</option>
+              <option value="late">后位：CO / BTN</option>
+              <option value="blind">盲位：SB / BB</option>
+            </select>
+          </div>
+          <button class="ghost" id="reset" type="button">重置</button>
+        </div>
+
+        <div class="table-zone">
+          <div class="position-box">
+            <span class="label">你的位置</span>
+            <div class="position" id="position">BTN</div>
+            <span class="label" id="positionHint">按钮位，范围最宽</span>
+          </div>
+
+          <div class="table" aria-hidden="true">
+            <div>
+              <strong id="scenarioTitle">无人入池</strong>
+              <span id="scenarioSubtitle">轮到你行动</span>
+            </div>
+          </div>
+
+          <div class="hand-area">
+            <span class="label">你的手牌</span>
+            <div class="cards" id="cards"></div>
+            <div class="hand-code" id="handCode">AJs</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="raise" id="raise" type="button">加注</button>
+          <button class="call hidden" id="call" type="button">跟入</button>
+          <button class="fold" id="fold" type="button">弃牌</button>
+          <button class="next" id="next" type="button">下一题</button>
+        </div>
+
+        <div class="feedback" id="feedback">
+          <strong>先做选择。</strong>
+          <span>新手阶段只练 RFI：前面没人入池时，你是否应该主动开局。</span>
+        </div>
+        <button class="level-up" id="levelUp" type="button">达标了，进入下一关</button>
+      </section>
+
+      <aside class="side-panel" aria-label="训练说明">
+        <h2>关卡进度</h2>
+        <ul class="level-list" id="levelList"></ul>
+
+        <h2>今日规则</h2>
+        <ul class="rule-list">
+          <li>前位要紧，按钮位最宽，小盲位不要因为便宜就乱补。</li>
+          <li>每一关都要先答题，再进入下一题。</li>
+          <li>目标不是背到完美，而是先把明显亏钱的入池和跟注戒掉。</li>
+        </ul>
+
+        <div class="review-box" id="dailyGoal">
+          今天先做 30 题。正确率达到 75% 后，再把训练量提高到 50 题。
+        </div>
+        <button class="ghost side-action" id="jumpLimp" type="button">测试入口：直接练第二关</button>
+
+        <h2>最近记录</h2>
+        <ul class="history" id="history">
+          <li>还没有记录。做完第一题后这里会显示你的选择。</li>
+        </ul>
+
+        <h2>训练报告</h2>
+        <div class="select-wrap">
+          <label class="label" for="playerName">练习者昵称</label>
+          <input id="playerName" type="text" placeholder="例如：朋友A">
+        </div>
+        <button class="ghost side-action" id="exportReport" type="button">导出训练报告</button>
+        <button class="ghost side-action" id="clearProgress" type="button">清空本机记录</button>
+      </aside>
+    </main>
+
+    <section class="knowledge-layout hidden" id="knowledgeMode" aria-label="知识训练" hidden>
+      <div class="knowledge-card">
+        <div class="knowledge-topic" id="knowledgeTopic">规则</div>
+        <div class="knowledge-question" id="knowledgeQuestion">问题加载中</div>
+        <div class="knowledge-options" id="knowledgeOptions"></div>
+        <div class="knowledge-explain" id="knowledgeExplain">先选择一个答案，这里会解释为什么。</div>
+        <div class="knowledge-actions">
+          <button class="next" id="knowledgeNext" type="button" disabled>下一题</button>
+          <button class="ghost" id="knowledgeShuffle" type="button">换一题</button>
+        </div>
+      </div>
+
+      <aside class="knowledge-card">
+        <h2>知识地图</h2>
+        <ul class="knowledge-list" id="knowledgeMap"></ul>
+        <div class="review-box" id="knowledgeProgress">
+          知识训练目标：每天 15 题，先把规则、术语和常见错误说清楚。
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <script>
+    const ranks = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
+    const rankValue = Object.fromEntries(ranks.map((rank, index) => [rank, ranks.length - index]));
+    const suits = [
+      { symbol: "♠", color: "black" },
+      { symbol: "♥", color: "red" },
+      { symbol: "♦", color: "red" },
+      { symbol: "♣", color: "black" }
+    ];
+
+    const actionNames = { raise: "加注", call: "跟入", fold: "弃牌" };
+    const levels = [
+      { key: "rfi", number: 1, title: "无人入池", goal: { count: 30, accuracy: 75 }, unlock: "30 题，正确率 75%" },
+      { key: "limp", number: 2, title: "有人 limp", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "facingRaise", number: 3, title: "面对 open", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "facing3bet", number: 4, title: "面对 3-bet", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "blindDefense", number: 5, title: "盲注防守", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" }
+    ];
+    const levelGoals = Object.fromEntries(levels.map(level => [level.key, level.goal]));
+    const storageKey = "texasHoldemTrainerProgressV1";
+    const knowledgeTopics = [
+      { key: "rules", title: "规则", description: "行动顺序、盲注、摊牌和基本流程。" },
+      { key: "terms", title: "术语", description: "open、limp、3-bet、c-bet、pot odds 等常用语言。" },
+      { key: "handPower", title: "牌力", description: "强牌、弱踢脚、同花连张、小对子和听牌价值。" },
+      { key: "position", title: "位置", description: "为什么后位更赚钱，盲注为什么难打。" },
+      { key: "math", title: "赔率", description: "底池赔率、隐含赔率和为什么便宜不等于能跟。" },
+      { key: "mistakes", title: "常见错误", description: "追输、乱 limp、弱牌跟到底和多人底池乱诈唬。" }
+    ];
+
+    const knowledgeQuestions = [
+      { topic: "规则", question: "德州扑克一手牌的公共牌顺序是什么？", options: ["翻牌 3 张、转牌 1 张、河牌 1 张", "翻牌 1 张、转牌 3 张、河牌 1 张", "每轮都发 2 张公共牌"], answer: 0, explain: "公共牌一共 5 张：翻牌一次发 3 张，转牌 1 张，河牌 1 张。" },
+      { topic: "规则", question: "什么是有效筹码？", options: ["一手牌中双方能真正输赢的最大筹码量", "桌上所有人的总筹码", "你买入时的原始筹码"], answer: 0, explain: "如果你有 100bb，对手有 40bb，你们这手牌的有效筹码就是 40bb。" },
+      { topic: "术语", question: "RFI 指的是什么？", options: ["前面没人入池时，你第一个加注进池", "别人加注后你再加注", "翻牌后持续下注"], answer: 0, explain: "RFI 是 Raise First In，训练器第一关练的就是这个。" },
+      { topic: "术语", question: "limp 是什么意思？", options: ["只跟大盲注进池", "翻牌后下注", "河牌全下"], answer: 0, explain: "新手桌常见 limp，但你不能因为便宜就跟着乱 limp。" },
+      { topic: "术语", question: "3-bet 是什么？", options: ["面对一次加注后的再加注", "第三张公共牌", "下注 3 个大盲"], answer: 0, explain: "open 是第一次加注，面对 open 的再加注叫 3-bet，不一定是下注 3bb。" },
+      { topic: "术语", question: "c-bet 是什么？", options: ["翻前加注者在翻牌后继续下注", "小盲位补齐", "河牌抓诈唬"], answer: 0, explain: "c-bet 是 continuation bet，后面的翻后训练会重点练。" },
+      { topic: "牌力", question: "为什么 K7o 通常是弱牌？", options: ["高张带弱踢脚，容易被更好 K 压制", "因为 K 永远不能玩", "因为非同花一定不能赢"], answer: 0, explain: "K7o 中 K 可能中顶对，但 7 踢脚很弱，容易输给 KQ、KJ、KT。" },
+      { topic: "牌力", question: "小对子 22-66 的主要价值是什么？", options: ["中三条后赢大底池", "每次都能摊牌赢", "适合任何位置 4-bet"], answer: 0, explain: "小对子单独牌力不强，主要靠便宜入池后中 set 拿隐含赔率。" },
+      { topic: "牌力", question: "同花连张比如 98s 强在哪里？", options: ["顺子、同花和强听牌潜力", "当前一定领先 AK", "永远应该全下"], answer: 0, explain: "这类牌强在可玩性，不是当前牌力大；位置和价格很重要。" },
+      { topic: "位置", question: "为什么按钮位 BTN 最赚钱？", options: ["翻后最后行动，信息最多", "按钮位牌会更大", "按钮位不用付盲注"], answer: 0, explain: "后行动能看到对手动作再决定，控池、诈唬和价值下注都更容易。" },
+      { topic: "位置", question: "小盲位为什么难打？", options: ["翻后通常没位置，而且已经投入半个盲注容易乱补", "小盲位不能加注", "小盲位只能玩对子"], answer: 0, explain: "SB 容易觉得便宜就补，但翻后经常先行动，错误会被放大。" },
+      { topic: "赔率", question: "底池赔率主要帮你判断什么？", options: ["跟注价格是否值得", "下一张牌一定是什么", "对手一定有没有牌"], answer: 0, explain: "底池赔率比较你要付的钱和能赢的底池，帮助决定听牌或边缘牌能不能跟。" },
+      { topic: "赔率", question: "为什么“只要跟一个大盲看看”不一定划算？", options: ["弱牌翻后会持续犯错，便宜只是表面便宜", "因为 1bb 永远比 3bb 贵", "因为大盲注不能跟"], answer: 0, explain: "弱牌中弱对后会继续付钱，长期亏损往往发生在翻后，不只是翻前那 1bb。" },
+      { topic: "常见错误", question: "新手桌最应该少做的事是什么？", options: ["用弱牌无计划跟注", "用强牌价值下注", "在后位用好牌加注"], answer: 0, explain: "新手亏得最多的是弱牌入池、中了弱对舍不得放、河牌不信对手。" },
+      { topic: "常见错误", question: "多人底池里诈唬为什么要减少？", options: ["对手人数多，至少一人有牌或愿意跟的概率更高", "多人底池不能下注", "多人底池牌力大小会改变"], answer: 0, explain: "面对多人，弃牌率下降，所以低级别多人底池更偏价值下注。" }
+    ];
+
+    const positions = {
+      UTG: { hint: "前位，必须很紧", group: "early" },
+      HJ: { hint: "中前位，略微放宽", group: "early" },
+      CO: { hint: "关煞位，可以主动偷盲", group: "late" },
+      BTN: { hint: "按钮位，范围最宽", group: "late" },
+      SB: { hint: "小盲位，没位置要谨慎", group: "blind" },
+      BB: { hint: "大盲位，翻后通常没位置", group: "blind" }
+    };
+
+    const ranges = {
+      UTG: {
+        pairMin: "7",
+        suited: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "KT", "QJ", "QT", "JT"],
+        offsuit: ["AK", "AQ", "AJ", "KQ"]
+      },
+      HJ: {
+        pairMin: "5",
+        suited: ["AK", "AQ", "AJ", "AT", "A9", "A8", "KQ", "KJ", "KT", "K9", "QJ", "QT", "Q9", "JT", "J9", "T9", "98"],
+        offsuit: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "QJ"]
+      },
+      CO: {
+        pairMin: "4",
+        suited: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "K8", "K7", "QJ", "QT", "Q9", "Q8", "JT", "J9", "J8", "T9", "T8", "98", "87", "76"],
+        offsuit: ["AK", "AQ", "AJ", "AT", "A9", "KQ", "KJ", "KT", "QJ", "QT", "JT"]
+      },
+      BTN: {
+        pairMin: "2",
+        suited: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "K8", "K7", "K6", "K5", "K4", "K3", "K2", "QJ", "QT", "Q9", "Q8", "Q7", "Q6", "Q5", "JT", "J9", "J8", "J7", "T9", "T8", "T7", "98", "97", "87", "86", "76", "75", "65", "54"],
+        offsuit: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "K8", "QJ", "QT", "Q9", "JT", "J9", "T9"]
+      },
+      SB: {
+        pairMin: "2",
+        suited: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "K8", "K7", "K6", "K5", "QJ", "QT", "Q9", "Q8", "JT", "J9", "J8", "T9", "T8", "97", "87", "86", "76", "75", "65"],
+        offsuit: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "QJ", "QT", "JT"]
+      },
+      BB: {
+        pairMin: "2",
+        suited: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "K8", "K7", "K6", "K5", "QJ", "QT", "Q9", "Q8", "JT", "J9", "J8", "T9", "T8", "98", "87", "76", "65"],
+        offsuit: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "QJ"]
+      }
+    };
+
+    const limpRaiseRanges = {
+      HJ: { pairMin: "9", suited: ["AK", "AQ", "AJ", "KQ", "KJ", "QJ", "JT", "T9"], offsuit: ["AK", "AQ", "AJ", "KQ"] },
+      CO: { pairMin: "8", suited: ["AK", "AQ", "AJ", "AT", "A5", "A4", "KQ", "KJ", "KT", "QJ", "QT", "JT", "T9", "98"], offsuit: ["AK", "AQ", "AJ", "AT", "KQ", "KJ"] },
+      BTN: { pairMin: "7", suited: ["AK", "AQ", "AJ", "AT", "A9", "A8", "A5", "A4", "A3", "A2", "KQ", "KJ", "KT", "K9", "QJ", "QT", "Q9", "JT", "J9", "T9", "98", "87", "76"], offsuit: ["AK", "AQ", "AJ", "AT", "A9", "KQ", "KJ", "KT", "QJ"] },
+      SB: { pairMin: "9", suited: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT", "T9"], offsuit: ["AK", "AQ", "AJ", "KQ"] },
+      BB: { pairMin: "8", suited: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT", "T9", "98"], offsuit: ["AK", "AQ", "AJ", "KQ"] }
+    };
+
+    const limpCallRanges = {
+      HJ: { pairMin: "2", suited: ["A5", "A4", "A3", "A2", "KT", "QT", "JT", "T9", "98", "87", "76", "65"], offsuit: [] },
+      CO: { pairMin: "2", suited: ["A5", "A4", "A3", "A2", "K9", "Q9", "J9", "T9", "98", "87", "76", "65", "54"], offsuit: [] },
+      BTN: { pairMin: "2", suited: ["A8", "A7", "A6", "A5", "A4", "A3", "A2", "K9", "K8", "Q9", "Q8", "J9", "J8", "T9", "T8", "98", "97", "87", "86", "76", "75", "65", "54"], offsuit: [] },
+      SB: { pairMin: "2", suited: ["A5", "A4", "A3", "A2", "K9", "Q9", "J9", "T9", "98", "87", "76", "65"], offsuit: [] },
+      BB: { pairMin: "2", suited: ["A8", "A7", "A6", "A5", "A4", "A3", "A2", "K9", "Q9", "J9", "T9", "98", "87", "76", "65", "54"], offsuit: [] }
+    };
+
+    const vsOpenRaiseRanges = {
+      CO: { pairMin: "Q", suited: ["AK", "AQ"], offsuit: ["AK"] },
+      BTN: { pairMin: "J", suited: ["AK", "AQ", "AJ", "KQ"], offsuit: ["AK", "AQ"] },
+      SB: { pairMin: "T", suited: ["AK", "AQ", "AJ", "KQ"], offsuit: ["AK", "AQ"] },
+      BB: { pairMin: "Q", suited: ["AK", "AQ", "AJ", "KQ"], offsuit: ["AK", "AQ"] }
+    };
+
+    const vsOpenCallRanges = {
+      CO: { pairMin: "8", suited: ["AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT", "T9", "98"], offsuit: ["AQ", "KQ"] },
+      BTN: { pairMin: "5", suited: ["AQ", "AJ", "AT", "A9", "A8", "KQ", "KJ", "KT", "QJ", "QT", "JT", "J9", "T9", "98", "87"], offsuit: ["AQ", "AJ", "KQ", "QJ"] },
+      SB: { pairMin: "8", suited: ["AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT", "T9"], offsuit: ["AQ", "KQ"] },
+      BB: { pairMin: "2", suited: ["AQ", "AJ", "AT", "A9", "A8", "A7", "A5", "A4", "KQ", "KJ", "KT", "QJ", "QT", "JT", "J9", "T9", "98", "87", "76"], offsuit: ["AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT"] }
+    };
+
+    const vs3betRaiseRanges = {
+      CO: { pairMin: "K", suited: ["AK"], offsuit: ["AK"] },
+      BTN: { pairMin: "Q", suited: ["AK"], offsuit: ["AK"] },
+      SB: { pairMin: "K", suited: ["AK"], offsuit: ["AK"] }
+    };
+
+    const vs3betCallRanges = {
+      CO: { pairMin: "T", suited: ["AQ", "AJ", "KQ"], offsuit: ["AQ"] },
+      BTN: { pairMin: "8", suited: ["AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT", "T9"], offsuit: ["AQ", "AJ", "KQ"] },
+      SB: { pairMin: "J", suited: ["AQ", "AJ", "KQ"], offsuit: ["AQ"] }
+    };
+
+    const blindDefenseRaiseRanges = {
+      SB: { pairMin: "T", suited: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "QJ"], offsuit: ["AK", "AQ", "AJ", "KQ"] },
+      BB: { pairMin: "J", suited: ["AK", "AQ", "AJ", "AT", "KQ", "KJ", "QJ", "JT"], offsuit: ["AK", "AQ", "AJ", "KQ"] }
+    };
+
+    const blindDefenseCallRanges = {
+      SB: { pairMin: "6", suited: ["A9", "A8", "A7", "A5", "A4", "A3", "A2", "KT", "K9", "QT", "Q9", "JT", "J9", "T9", "98", "87", "76"], offsuit: ["AT", "KJ", "QJ"] },
+      BB: { pairMin: "2", suited: ["A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KT", "K9", "K8", "QT", "Q9", "Q8", "JT", "J9", "J8", "T9", "T8", "98", "97", "87", "86", "76", "65", "54"], offsuit: ["AT", "A9", "KJ", "KT", "QJ", "QT", "JT", "T9"] }
+    };
+
+    const state = {
+      level: "rfi",
+      playerName: "",
+      current: null,
+      total: 0,
+      correct: 0,
+      streak: 0,
+      answered: false,
+      history: [],
+      completedLevels: new Set(),
+      knowledgeIndex: 0,
+      knowledgeAnswered: false,
+      knowledgeTotal: 0,
+      knowledgeCorrect: 0
+    };
+
+    const cardsEl = document.querySelector("#cards");
+    const positionEl = document.querySelector("#position");
+    const positionHintEl = document.querySelector("#positionHint");
+    const scenarioTitleEl = document.querySelector("#scenarioTitle");
+    const scenarioSubtitleEl = document.querySelector("#scenarioSubtitle");
+    const handCodeEl = document.querySelector("#handCode");
+    const feedbackEl = document.querySelector("#feedback");
+    const totalEl = document.querySelector("#total");
+    const accuracyEl = document.querySelector("#accuracy");
+    const streakEl = document.querySelector("#streak");
+    const historyEl = document.querySelector("#history");
+    const levelListEl = document.querySelector("#levelList");
+    const modeEl = document.querySelector("#mode");
+    const raiseButton = document.querySelector("#raise");
+    const callButton = document.querySelector("#call");
+    const nextButton = document.querySelector("#next");
+    const actionsEl = document.querySelector(".actions");
+    const levelUpButton = document.querySelector("#levelUp");
+    const jumpLimpButton = document.querySelector("#jumpLimp");
+    const dailyGoalEl = document.querySelector("#dailyGoal");
+    const playerNameEl = document.querySelector("#playerName");
+    const exportReportButton = document.querySelector("#exportReport");
+    const clearProgressButton = document.querySelector("#clearProgress");
+    const playModeEl = document.querySelector("#playMode");
+    const knowledgeModeEl = document.querySelector("#knowledgeMode");
+    const playModeButton = document.querySelector("#playModeButton");
+    const knowledgeModeButton = document.querySelector("#knowledgeModeButton");
+    const statsPanelEl = document.querySelector("#statsPanel");
+    const knowledgeTopicEl = document.querySelector("#knowledgeTopic");
+    const knowledgeQuestionEl = document.querySelector("#knowledgeQuestion");
+    const knowledgeOptionsEl = document.querySelector("#knowledgeOptions");
+    const knowledgeExplainEl = document.querySelector("#knowledgeExplain");
+    const knowledgeNextButton = document.querySelector("#knowledgeNext");
+    const knowledgeMapEl = document.querySelector("#knowledgeMap");
+    const knowledgeProgressEl = document.querySelector("#knowledgeProgress");
+
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function saveProgress() {
+      const payload = {
+        level: state.level,
+        playerName: state.playerName,
+        total: state.total,
+        correct: state.correct,
+        streak: state.streak,
+        history: state.history,
+        completedLevels: Array.from(state.completedLevels),
+        knowledgeIndex: state.knowledgeIndex,
+        knowledgeTotal: state.knowledgeTotal,
+        knowledgeCorrect: state.knowledgeCorrect,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const payload = JSON.parse(raw);
+        const validLevels = levels.map(level => level.key);
+        if (validLevels.includes(payload.level)) state.level = payload.level;
+        state.playerName = typeof payload.playerName === "string" ? payload.playerName : "";
+        state.total = Number.isFinite(payload.total) ? payload.total : 0;
+        state.correct = Number.isFinite(payload.correct) ? payload.correct : 0;
+        state.streak = Number.isFinite(payload.streak) ? payload.streak : 0;
+        state.history = Array.isArray(payload.history) ? payload.history.slice(0, 7) : [];
+        state.completedLevels = new Set(Array.isArray(payload.completedLevels) ? payload.completedLevels.filter(level => validLevels.includes(level)) : []);
+        state.knowledgeIndex = Number.isFinite(payload.knowledgeIndex) ? Math.min(payload.knowledgeIndex, knowledgeQuestions.length - 1) : 0;
+        state.knowledgeTotal = Number.isFinite(payload.knowledgeTotal) ? payload.knowledgeTotal : 0;
+        state.knowledgeCorrect = Number.isFinite(payload.knowledgeCorrect) ? payload.knowledgeCorrect : 0;
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    function currentLevelInfo() {
+      return levels.find(level => level.key === state.level) || levels[0];
+    }
+
+    function reportText() {
+      const level = currentLevelInfo();
+      const playAccuracy = state.total === 0 ? 0 : Math.round((state.correct / state.total) * 100);
+      const knowledgeAccuracy = state.knowledgeTotal === 0 ? 0 : Math.round((state.knowledgeCorrect / state.knowledgeTotal) * 100);
+      const completed = levels.filter(item => state.completedLevels.has(item.key)).map(item => `第 ${item.number} 关：${item.title}`);
+      const historyLines = state.history.length
+        ? state.history.map((item, index) => `${index + 1}. ${item.text}：选择 ${item.action}，结果 ${item.result}，建议 ${item.correct}`)
+        : ["暂无最近答题记录"];
+      return [
+        "德州扑克训练器 - 训练报告",
+        "",
+        `练习者：${state.playerName || "未填写"}`,
+        `导出时间：${new Date().toLocaleString()}`,
+        "",
+        "闯关训练",
+        `当前关卡：第 ${level.number} 关：${level.title}`,
+        `当前关已练：${state.total} 题`,
+        `当前关正确率：${playAccuracy}%`,
+        `当前连对：${state.streak}`,
+        `已达标关卡：${completed.length ? completed.join("、") : "暂无"}`,
+        "",
+        "知识训练",
+        `已答：${state.knowledgeTotal} 题`,
+        `正确率：${knowledgeAccuracy}%`,
+        "",
+        "最近答题记录",
+        ...historyLines,
+        "",
+        "说明：本报告来自浏览器本地记录。不同设备或不同浏览器的记录不会自动合并。"
+      ].join("\n");
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportReport() {
+      state.playerName = playerNameEl.value.trim();
+      saveProgress();
+      const safeName = (state.playerName || "未命名").replace(/[\\/:*?"<>|]/g, "_");
+      const date = new Date().toISOString().slice(0, 10);
+      downloadText(`德州扑克训练报告-${safeName}-${date}.txt`, reportText());
+    }
+
+    function clearProgress() {
+      const ok = window.confirm("确定清空这台设备上的训练记录吗？这个动作不能撤销。");
+      if (!ok) return;
+      localStorage.removeItem(storageKey);
+      state.level = "rfi";
+      state.playerName = "";
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      state.completedLevels = new Set();
+      state.knowledgeIndex = 0;
+      state.knowledgeTotal = 0;
+      state.knowledgeCorrect = 0;
+      playerNameEl.value = "";
+      renderStats();
+      renderHistory();
+      renderKnowledgeMap();
+      nextQuestion();
+    }
+
+    function buildDeckCard(rank, usedSuit) {
+      let suit = randomItem(suits);
+      if (usedSuit && suits.length > 1) {
+        while (suit.symbol === usedSuit.symbol) suit = randomItem(suits);
+      }
+      return { rank, suit };
+    }
+
+    function normalizeHand(cardA, cardB) {
+      let first = cardA.rank;
+      let second = cardB.rank;
+      if (rankValue[second] > rankValue[first]) {
+        [first, second] = [second, first];
+      }
+      if (first === second) return { code: first + second, combo: first + second, type: "pair", high: first, low: second };
+      const suited = cardA.suit.symbol === cardB.suit.symbol;
+      return { code: first + second + (suited ? "s" : "o"), combo: first + second, type: suited ? "suited" : "offsuit", high: first, low: second };
+    }
+
+    function isInRange(position, hand, rangeSet = ranges) {
+      const range = rangeSet[position];
+      if (!range) return false;
+      if (hand.type === "pair") {
+        return rankValue[hand.combo[0]] >= rankValue[range.pairMin];
+      }
+      return range[hand.type].includes(hand.combo);
+    }
+
+    function choosePosition() {
+      const mode = modeEl.value;
+      const pools = {
+        rfi: ["UTG", "HJ", "CO", "BTN", "SB"],
+        limp: ["HJ", "CO", "BTN", "SB", "BB"],
+        facingRaise: ["CO", "BTN", "SB", "BB"],
+        facing3bet: ["CO", "BTN", "SB"],
+        blindDefense: ["SB", "BB"]
+      };
+      const all = pools[state.level] || pools.rfi;
+      if (mode === "all") return randomItem(all);
+      const filtered = all.filter(position => positions[position].group === mode);
+      return randomItem(filtered.length ? filtered : all);
+    }
+
+    function chooseOpener(position) {
+      const openerMap = {
+        CO: ["UTG", "HJ"],
+        BTN: ["UTG", "HJ", "CO"],
+        SB: ["CO", "BTN"],
+        BB: ["CO", "BTN", "SB"]
+      };
+      return randomItem(openerMap[position] || ["CO"]);
+    }
+
+    function chooseThreeBetter(position) {
+      const threeBetterMap = {
+        CO: ["BTN", "SB", "BB"],
+        BTN: ["SB", "BB"],
+        SB: ["BB"]
+      };
+      return randomItem(threeBetterMap[position] || ["BB"]);
+    }
+
+    function dealHand() {
+      const firstRank = randomItem(ranks);
+      let secondRank = randomItem(ranks);
+      const pair = Math.random() < 0.06;
+      if (pair) secondRank = firstRank;
+      const first = buildDeckCard(firstRank);
+      const second = buildDeckCard(secondRank, firstRank === secondRank ? first.suit : null);
+      if (firstRank !== secondRank && Math.random() < 0.5) {
+        second.suit = first.suit;
+      }
+      return { cards: [first, second], hand: normalizeHand(first, second) };
+    }
+
+    function decideAction(position, hand) {
+      if (state.level === "rfi") {
+        return isInRange(position, hand) ? "raise" : "fold";
+      }
+      if (state.level === "facingRaise") {
+        if (isInRange(position, hand, vsOpenRaiseRanges)) return "raise";
+        if (isInRange(position, hand, vsOpenCallRanges)) return "call";
+        return "fold";
+      }
+      if (state.level === "facing3bet") {
+        if (isInRange(position, hand, vs3betRaiseRanges)) return "raise";
+        if (isInRange(position, hand, vs3betCallRanges)) return "call";
+        return "fold";
+      }
+      if (state.level === "blindDefense") {
+        if (isInRange(position, hand, blindDefenseRaiseRanges)) return "raise";
+        if (isInRange(position, hand, blindDefenseCallRanges)) return "call";
+        return "fold";
+      }
+      if (isInRange(position, hand, limpRaiseRanges)) return "raise";
+      if (isInRange(position, hand, limpCallRanges)) return "call";
+      return "fold";
+    }
+
+    function nextQuestion() {
+      const position = choosePosition();
+      const dealt = dealHand();
+      const limpers = state.level === "limp" ? Math.floor(Math.random() * 3) + 1 : 0;
+      const opener = ["facingRaise", "blindDefense"].includes(state.level) ? chooseOpener(position) : "";
+      const threeBetter = state.level === "facing3bet" ? chooseThreeBetter(position) : "";
+      state.current = {
+        position,
+        cards: dealt.cards,
+        hand: dealt.hand,
+        limpers,
+        opener,
+        threeBetter,
+        correctChoice: decideAction(position, dealt.hand)
+      };
+      state.answered = false;
+      renderQuestion();
+      const prompt = state.level === "rfi"
+        ? "判断这手牌在当前位置是否适合无人入池时开局加注。"
+        : state.level === "limp"
+          ? `前面有 ${limpers} 人 limp，判断你应该加注、跟入还是弃牌。`
+          : state.level === "facingRaise"
+            ? `${opener} open 到 3bb，判断你应该 3-bet、跟注还是弃牌。`
+            : state.level === "facing3bet"
+              ? `你 open 后，${threeBetter} 3-bet，判断你应该 4-bet、跟注还是弃牌。`
+              : `${opener} open 到 3bb，你在盲注位，判断你应该 3-bet、跟注还是弃牌。`;
+      setFeedback("先做选择。", prompt, "");
+      updateNextButton();
+    }
+
+    function renderQuestion() {
+      const { position, cards, hand, limpers, opener, threeBetter } = state.current;
+      positionEl.textContent = position;
+      positionHintEl.textContent = positions[position].hint;
+      handCodeEl.textContent = hand.code;
+      if (state.level === "rfi") {
+        scenarioTitleEl.textContent = "无人入池";
+        scenarioSubtitleEl.textContent = "轮到你行动";
+      } else if (state.level === "limp") {
+        scenarioTitleEl.textContent = `${limpers} 人 limp`;
+        scenarioSubtitleEl.textContent = "新手桌常见局面";
+      } else if (state.level === "facingRaise") {
+        scenarioTitleEl.textContent = `${opener} open`;
+        scenarioSubtitleEl.textContent = "对手加注到 3bb";
+      } else if (state.level === "facing3bet") {
+        scenarioTitleEl.textContent = `${threeBetter} 3-bet`;
+        scenarioSubtitleEl.textContent = "你开局后被再加注";
+      } else {
+        scenarioTitleEl.textContent = `${opener} open`;
+        scenarioSubtitleEl.textContent = "你在盲注位防守";
+      }
+      raiseButton.textContent = state.level === "facing3bet" ? "4-bet" : ["facingRaise", "blindDefense"].includes(state.level) ? "3-bet" : "加注";
+      callButton.classList.toggle("hidden", state.level === "rfi");
+      actionsEl.classList.toggle("limp-actions", state.level !== "rfi");
+      cardsEl.innerHTML = cards.map(card => (
+        `<div class="card ${card.suit.color}" aria-label="${card.rank}${card.suit.symbol}">${card.rank}${card.suit.symbol}</div>`
+      )).join("");
+      updateGoalText();
+      renderLevelList();
+    }
+
+    function setFeedback(title, message, status) {
+      feedbackEl.className = "feedback" + (status ? ` ${status}` : "");
+      feedbackEl.innerHTML = `<strong>${title}</strong><span>${message}</span>`;
+    }
+
+    function actionLabel(action) {
+      if (action !== "raise") return actionNames[action];
+      if (state.level === "facing3bet") return "4-bet";
+      if (["facingRaise", "blindDefense"].includes(state.level)) return "3-bet";
+      return actionNames[action];
+    }
+
+    function actionBadge(action) {
+      return `<span class="recommend-action">${actionLabel(action)}</span>`;
+    }
+
+    function updateNextButton() {
+      nextButton.disabled = !state.answered;
+    }
+
+    function handReason(hand, action) {
+      if (hand.type === "pair") {
+        if (action === "raise") return "口袋对子有成套潜力，中高对子还能直接拿价值，适合主动加注。";
+        if (action === "call") return "小对子主要靠中三条赢大底池，多人 limp 时便宜跟入可以，但不要打成追输。";
+        return "这个对子在当前位置或场景里价值不够，翻后容易被更大的对子压制。";
+      }
+      const high = hand.high;
+      const low = hand.low;
+      const gap = Math.abs(rankValue[high] - rankValue[low]);
+      if (action === "raise") {
+        if (high === "A" || high === "K") return "高张牌有摊牌价值和顶对价值，主动加注还能拿主动权。";
+        if (hand.type === "suited" && gap <= 2) return "同花连张或近连张有顺子、同花和半诈唬空间，适合在好位置主动打。";
+        return "这手牌在当前范围内，主要因为牌面连接性和位置能支撑主动加注。";
+      }
+      if (action === "call") {
+        if (hand.type === "suited" && gap <= 2) return "这类同花连张多人底池可玩性好，中了强听牌或大牌时容易拿到隐含赔率。";
+        if (high === "A" && hand.type === "suited") return "同花 A 有同花潜力和坚果同花价值，多人 limp 时可以谨慎跟入。";
+        return "这手牌不适合孤立加注，但多人 limp 时有一定可玩性。";
+      }
+      if (hand.type === "offsuit" && gap >= 4) return "非同花、断张太大，顺子和同花潜力都差，翻后很难继续。";
+      if (["K", "Q", "J"].includes(high) && rankValue[low] <= rankValue["8"]) return "这类牌容易中弱顶对或弱踢脚，被新手跟到底时反而容易付钱给更好牌。";
+      if (hand.type === "suited" && gap >= 4) return "虽然同花看着舒服，但连接性差，单靠同花概率不够支撑长期入池。";
+      return "牌力、连接性和摊牌价值都不够，长期看弃牌比便宜看翻牌更赚钱。";
+    }
+
+    function handStrengthLabel(hand) {
+      if (hand.type === "pair") {
+        const value = rankValue[hand.high];
+        if (value >= rankValue["J"]) return "强牌：高口袋对子，翻前通常已经领先很多起手牌。";
+        if (value >= rankValue["7"]) return "中等强度：中口袋对子，有摊牌价值，也有中三条潜力。";
+        return "投机牌：小口袋对子，单独牌力不强，主要靠中三条赢大底池。";
+      }
+
+      const high = hand.high;
+      const low = hand.low;
+      const gap = Math.abs(rankValue[high] - rankValue[low]);
+      const lowValue = rankValue[low];
+
+      if (high === "A" && lowValue >= rankValue["T"]) {
+        return "强牌：A 高张加好踢脚，容易中强顶对，也有摊牌价值。";
+      }
+      if (["A", "K"].includes(high) && lowValue >= rankValue["Q"]) {
+        return "强牌：两张高牌，击中顶对时通常踢脚也不错。";
+      }
+      if (hand.type === "suited" && gap <= 1 && rankValue[high] >= rankValue["J"]) {
+        return "中强牌：同花高连张，有顶对、顺子、同花和半诈唬潜力。";
+      }
+      if (hand.type === "suited" && gap <= 2 && rankValue[high] >= rankValue["9"]) {
+        return "可玩牌：同花连张或近连张，强在成牌潜力，不强在当前牌面大小。";
+      }
+      if (high === "A" && hand.type === "suited") {
+        return "可玩牌：同花 A，有坚果同花潜力，但踢脚偏弱时顶对价值会打折。";
+      }
+      if (["K", "Q", "J"].includes(high) && lowValue <= rankValue["8"]) {
+        return "弱牌：高张带弱踢脚，容易中一对却被更好踢脚压制。";
+      }
+      if (hand.type === "offsuit" && gap >= 4) {
+        return "弱牌：非同花断张，顺子和同花潜力都差，翻后继续空间很小。";
+      }
+      if (hand.type === "suited" && gap >= 4) {
+        return "偏弱牌：虽然是同花，但断张太大，不能只因为同花就入池。";
+      }
+      return "边缘牌：不是完全没潜力，但牌力、踢脚和连接性都不够稳定。";
+    }
+
+    function scenarioReason(action) {
+      if (state.level === "rfi") {
+        return action === "raise"
+          ? "前面没人入池时，能玩的牌优先加注，不要 limp，这样你有主动权。"
+          : "RFI 不是“便宜看看”，弱牌直接弃，能少掉很多翻后麻烦。";
+      }
+      if (state.level === "facingRaise") {
+        if (action === "raise") return "面对别人 open，最强的一批牌用 3-bet 拿价值，也能减少多人底池。";
+        if (action === "call") return "这手牌不够强到再加注，但有位置、牌力或可玩性支撑跟注看翻牌。";
+        return "面对已经有人加注的局面，弱牌不能再用“便宜看看”的思路硬跟。";
+      }
+      if (state.level === "facing3bet") {
+        if (action === "raise") return "面对 3-bet，只有顶级强牌适合 4-bet，避免用边缘牌把底池打太大。";
+        if (action === "call") return "这手牌有足够牌力或隐含赔率，可以跟注看翻牌，但翻后要谨慎。";
+        return "被 3-bet 后价格更贵、对手范围更强，边缘牌直接弃能省很多大损失。";
+      }
+      if (state.level === "blindDefense") {
+        if (action === "raise") return "盲注位用强牌 3-bet，可以拿价值，也避免被后位宽范围偷盲。";
+        if (action === "call") return "大盲位价格好，小盲位要更谨慎；可玩牌可以防守，但别过度跟注。";
+        return "盲注已经投入不代表必须防守，弱牌没位置很容易翻后继续亏。";
+      }
+      if (action === "raise") return "有人 limp 时，强牌要加大注隔离，让差牌付更贵的价格。";
+      if (action === "call") return "多人 limp 时，一些隐含赔率牌可以便宜跟入，但不要拿边缘高张牌硬跟。";
+      return "前面有人 limp 不代表你也要跟，弱牌进多人底池通常只是在买麻烦。";
+    }
+
+    function makeExplanation(action) {
+      const { position, hand, limpers, opener, threeBetter } = state.current;
+      const scene = state.level === "rfi"
+        ? "无人入池"
+        : state.level === "limp"
+          ? `前面 ${limpers} 人 limp`
+          : state.level === "facingRaise"
+            ? `${opener} open 到 3bb`
+            : state.level === "facing3bet"
+              ? `你 open 后，${threeBetter} 3-bet`
+              : `${opener} open 到 3bb，你在盲注位`;
+      return `${scene}，${position} 拿 ${hand.code}，建议${actionBadge(action)}。${handStrengthLabel(hand)}${scenarioReason(action)}${handReason(hand, action)}`;
+    }
+
+    function isGoalReached() {
+      const goal = levelGoals[state.level];
+      const accuracy = state.total === 0 ? 0 : Math.round((state.correct / state.total) * 100);
+      return state.total >= goal.count && accuracy >= goal.accuracy;
+    }
+
+    function answer(choice) {
+      if (state.answered) return;
+      state.answered = true;
+      const correctChoice = state.current.correctChoice;
+      const ok = choice === correctChoice;
+      state.total += 1;
+      state.correct += ok ? 1 : 0;
+      state.streak = ok ? state.streak + 1 : 0;
+      const title = ok ? "正确。" : "这题错了。";
+      const message = `${makeExplanation(correctChoice)} 你的选择：${actionBadge(choice)}。`;
+      setFeedback(title, message, ok ? "correct" : "wrong");
+      state.history.unshift({
+        text: `${state.current.position} ${state.current.hand.code}`,
+        action: actionLabel(choice),
+        result: ok ? "对" : "错",
+        correct: actionLabel(correctChoice)
+      });
+      state.history = state.history.slice(0, 7);
+      renderStats();
+      renderHistory();
+      updateGoalText();
+      updateNextButton();
+      maybeShowLevelUp();
+      saveProgress();
+    }
+
+    function renderStats() {
+      totalEl.textContent = state.total;
+      streakEl.textContent = state.streak;
+      accuracyEl.textContent = state.total === 0 ? "0%" : `${Math.round((state.correct / state.total) * 100)}%`;
+    }
+
+    function renderHistory() {
+      if (state.history.length === 0) {
+        historyEl.innerHTML = "<li>还没有记录。做完第一题后这里会显示你的选择。</li>";
+        return;
+      }
+      historyEl.innerHTML = state.history.map(item => (
+        `<li><strong>${item.text}</strong>：你选 ${item.action}，结果 ${item.result}。建议 ${item.correct}。</li>`
+      )).join("");
+    }
+
+    function renderLevelList() {
+      const currentIndex = levels.findIndex(level => level.key === state.level);
+      levelListEl.innerHTML = levels.map((level, index) => {
+        const status = level.key === state.level ? "active" : state.completedLevels.has(level.key) ? "done" : "";
+        const prefix = level.key === state.level ? "正在练" : state.completedLevels.has(level.key) ? "已达标" : index < currentIndex ? "可复习" : "未解锁";
+        return `<li class="${status}"><strong>第 ${level.number} 关：${level.title}</strong><br>${prefix}｜进入下一关：${level.unlock}</li>`;
+      }).join("");
+    }
+
+    function updateGoalText() {
+      const goal = levelGoals[state.level];
+      const accuracy = state.total === 0 ? 0 : Math.round((state.correct / state.total) * 100);
+      if (state.level === "rfi") {
+        dailyGoalEl.textContent = `第一关：无人入池开局。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "limp") {
+        dailyGoalEl.textContent = `第二关：前面有人 limp。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练加注隔离、便宜跟入和直接弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "facingRaise") {
+        dailyGoalEl.textContent = `第三关：面对别人 open。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练 3-bet、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "facing3bet") {
+        dailyGoalEl.textContent = `第四关：面对 3-bet。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练 4-bet、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else {
+        dailyGoalEl.textContent = `第五关：盲注防守。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练盲注位 3-bet、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      }
+      renderLevelList();
+    }
+
+    function maybeShowLevelUp() {
+      if (state.level === "rfi" && isGoalReached()) {
+        state.completedLevels.add("rfi");
+        levelUpButton.textContent = "达标了，进入第二关";
+        levelUpButton.classList.add("show");
+        setFeedback("第一关达标。", "你已经达到 30 题且正确率 75% 以上，可以进入下一关：前面有人 limp 时怎么处理。", "correct");
+      } else if (state.level === "limp" && isGoalReached()) {
+        state.completedLevels.add("limp");
+        levelUpButton.textContent = "达标了，进入第三关";
+        levelUpButton.classList.add("show");
+        setFeedback("第二关达标。", "你已经达到当前测试目标，可以进入第三关：面对别人加注时的 3-bet、跟注和弃牌。", "correct");
+      } else if (state.level === "facingRaise" && isGoalReached()) {
+        state.completedLevels.add("facingRaise");
+        levelUpButton.textContent = "达标了，进入第四关";
+        levelUpButton.classList.add("show");
+        setFeedback("第三关达标。", "你已经完成面对 open 的基础训练，可以进入第四关：面对 3-bet。", "correct");
+      } else if (state.level === "facing3bet" && isGoalReached()) {
+        state.completedLevels.add("facing3bet");
+        levelUpButton.textContent = "达标了，进入第五关";
+        levelUpButton.classList.add("show");
+        setFeedback("第四关达标。", "你已经完成面对 3-bet 的基础训练，可以进入第五关：盲注防守。", "correct");
+      } else if (state.level === "blindDefense" && isGoalReached()) {
+        state.completedLevels.add("blindDefense");
+        levelUpButton.classList.remove("show");
+        setFeedback("第五关达标。", "前五关翻前基础已经打通。下一阶段可以开始练翻牌 c-bet 和面对 c-bet。", "correct");
+      } else {
+        levelUpButton.classList.remove("show");
+      }
+      renderLevelList();
+    }
+
+    function switchToLimpLevel() {
+      state.level = "limp";
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      levelUpButton.classList.remove("show");
+      renderStats();
+      renderHistory();
+      nextQuestion();
+      saveProgress();
+    }
+
+    function switchToFacingRaiseLevel() {
+      state.level = "facingRaise";
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      levelUpButton.classList.remove("show");
+      renderStats();
+      renderHistory();
+      nextQuestion();
+      saveProgress();
+    }
+
+    function switchToFacing3betLevel() {
+      state.level = "facing3bet";
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      levelUpButton.classList.remove("show");
+      renderStats();
+      renderHistory();
+      nextQuestion();
+      saveProgress();
+    }
+
+    function switchToBlindDefenseLevel() {
+      state.level = "blindDefense";
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      levelUpButton.classList.remove("show");
+      renderStats();
+      renderHistory();
+      nextQuestion();
+      saveProgress();
+    }
+
+    function goToNextLevel() {
+      if (state.level === "rfi") {
+        switchToLimpLevel();
+      } else if (state.level === "limp") {
+        switchToFacingRaiseLevel();
+      } else if (state.level === "facingRaise") {
+        switchToFacing3betLevel();
+      } else if (state.level === "facing3bet") {
+        switchToBlindDefenseLevel();
+      }
+    }
+
+    function resetSession() {
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      levelUpButton.classList.remove("show");
+      renderStats();
+      renderHistory();
+      nextQuestion();
+      saveProgress();
+    }
+
+    function handleNextQuestion() {
+      if (!state.answered) {
+        setFeedback("先答当前题。", "你需要先选择一个动作，才能进入下一题。", "wrong");
+        return;
+      }
+      nextQuestion();
+    }
+
+    function renderKnowledgeMap() {
+      knowledgeMapEl.innerHTML = knowledgeTopics.map(topic => (
+        `<li><strong>${topic.title}</strong>${topic.description}</li>`
+      )).join("");
+    }
+
+    function renderKnowledgeQuestion() {
+      const item = knowledgeQuestions[state.knowledgeIndex];
+      state.knowledgeAnswered = false;
+      knowledgeTopicEl.textContent = item.topic;
+      knowledgeQuestionEl.textContent = item.question;
+      knowledgeExplainEl.textContent = "先选择一个答案，这里会解释为什么。";
+      knowledgeNextButton.disabled = true;
+      knowledgeOptionsEl.innerHTML = item.options.map((option, index) => (
+        `<button type="button" data-index="${index}">${option}</button>`
+      )).join("");
+      knowledgeOptionsEl.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => answerKnowledge(Number(button.dataset.index)));
+      });
+      updateKnowledgeProgress();
+    }
+
+    function answerKnowledge(choice) {
+      if (state.knowledgeAnswered) return;
+      state.knowledgeAnswered = true;
+      const item = knowledgeQuestions[state.knowledgeIndex];
+      const ok = choice === item.answer;
+      state.knowledgeTotal += 1;
+      state.knowledgeCorrect += ok ? 1 : 0;
+      knowledgeOptionsEl.querySelectorAll("button").forEach((button, index) => {
+        button.disabled = true;
+        if (index === item.answer) button.classList.add("correct-answer");
+        if (index === choice && !ok) button.classList.add("wrong-answer");
+      });
+      knowledgeExplainEl.innerHTML = `<strong>${ok ? "正确。" : "这题错了。"}</strong> ${item.explain}`;
+      knowledgeNextButton.disabled = false;
+      updateKnowledgeProgress();
+      saveProgress();
+    }
+
+    function nextKnowledgeQuestion() {
+      state.knowledgeIndex = (state.knowledgeIndex + 1) % knowledgeQuestions.length;
+      renderKnowledgeQuestion();
+      saveProgress();
+    }
+
+    function shuffleKnowledgeQuestion() {
+      let next = Math.floor(Math.random() * knowledgeQuestions.length);
+      if (knowledgeQuestions.length > 1) {
+        while (next === state.knowledgeIndex) next = Math.floor(Math.random() * knowledgeQuestions.length);
+      }
+      state.knowledgeIndex = next;
+      renderKnowledgeQuestion();
+      saveProgress();
+    }
+
+    function updateKnowledgeProgress() {
+      const accuracy = state.knowledgeTotal === 0 ? 0 : Math.round((state.knowledgeCorrect / state.knowledgeTotal) * 100);
+      knowledgeProgressEl.textContent = `知识训练：已答 ${state.knowledgeTotal} 题，正确率 ${accuracy}%。建议每天 15 题，答题时把术语用自己的话说一遍。`;
+    }
+
+    function setAppMode(mode) {
+      const knowledge = mode === "knowledge";
+      playModeEl.classList.toggle("hidden", knowledge);
+      knowledgeModeEl.classList.toggle("hidden", !knowledge);
+      playModeEl.hidden = knowledge;
+      knowledgeModeEl.hidden = !knowledge;
+      statsPanelEl.classList.toggle("hidden", knowledge);
+      playModeButton.classList.toggle("active", !knowledge);
+      knowledgeModeButton.classList.toggle("active", knowledge);
+      if (knowledge) renderKnowledgeQuestion();
+    }
+
+    document.querySelector("#raise").addEventListener("click", () => answer("raise"));
+    document.querySelector("#call").addEventListener("click", () => answer("call"));
+    document.querySelector("#fold").addEventListener("click", () => answer("fold"));
+    document.querySelector("#next").addEventListener("click", handleNextQuestion);
+    document.querySelector("#reset").addEventListener("click", resetSession);
+    levelUpButton.addEventListener("click", goToNextLevel);
+    jumpLimpButton.addEventListener("click", switchToLimpLevel);
+    modeEl.addEventListener("change", nextQuestion);
+    playModeButton.addEventListener("click", () => setAppMode("play"));
+    knowledgeModeButton.addEventListener("click", () => setAppMode("knowledge"));
+    knowledgeNextButton.addEventListener("click", nextKnowledgeQuestion);
+    document.querySelector("#knowledgeShuffle").addEventListener("click", shuffleKnowledgeQuestion);
+    playerNameEl.addEventListener("input", () => {
+      state.playerName = playerNameEl.value.trim();
+      saveProgress();
+    });
+    exportReportButton.addEventListener("click", exportReport);
+    clearProgressButton.addEventListener("click", clearProgress);
+
+    loadProgress();
+    playerNameEl.value = state.playerName;
+    renderKnowledgeMap();
+    renderStats();
+    renderHistory();
+    nextQuestion();
+    maybeShowLevelUp();
+  </script>
+</body>
+</html>
