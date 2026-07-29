@@ -400,6 +400,48 @@
       line-height: 1.5;
     }
 
+    .member-box {
+      margin-top: 14px;
+      border-radius: 8px;
+      border: 1px solid #d7c58c;
+      background: #fff8df;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .member-status {
+      display: inline-flex;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #17201a;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .member-status.free {
+      background: #87652b;
+    }
+
+    .member-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .legal-note {
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
     .level-up {
       margin-top: 12px;
       display: none;
@@ -698,6 +740,17 @@
         </div>
         <button class="ghost side-action" id="jumpLimp" type="button">测试入口：直接练第二关</button>
 
+        <h2>会员训练</h2>
+        <div class="member-box">
+          <span class="member-status free" id="memberStatus">免费体验版</span>
+          <div id="memberCopy">免费版可练第 1-5 关。高级会员解锁第 6-10 关翻后训练。</div>
+          <div class="member-row">
+            <input id="accessCode" type="text" placeholder="输入激活码">
+            <button class="ghost" id="activateMember" type="button">激活</button>
+          </div>
+          <button class="ghost" id="buyMember" type="button">购买高级训练</button>
+        </div>
+
         <h2>最近记录</h2>
         <ul class="history" id="history">
           <li>还没有记录。做完第一题后这里会显示你的选择。</li>
@@ -710,6 +763,10 @@
         </div>
         <button class="ghost side-action" id="exportReport" type="button">导出训练报告</button>
         <button class="ghost side-action" id="clearProgress" type="button">清空本机记录</button>
+
+        <div class="legal-note">
+          本工具只用于德州扑克策略学习和娱乐训练，不提供真钱游戏、赌博服务、赛事撮合或资金托管。
+        </div>
       </aside>
     </main>
 
@@ -760,6 +817,8 @@
     ];
     const levelGoals = Object.fromEntries(levels.map(level => [level.key, level.goal]));
     const postflopLevelKeys = ["flopCbet", "facingFlopBet", "turnBarrel", "riverBet", "linePlan"];
+    const premiumStartLevel = 6;
+    const demoAccessCode = "VIP2026";
     const storageKey = "texasHoldemTrainerProgressV1";
     const knowledgeTopics = [
       { key: "rules", title: "规则", description: "行动顺序、盲注、摊牌和基本流程。" },
@@ -905,6 +964,7 @@
       answered: false,
       history: [],
       completedLevels: new Set(),
+      isPremium: false,
       knowledgeIndex: 0,
       knowledgeAnswered: false,
       knowledgeTotal: 0,
@@ -935,6 +995,11 @@
     const playerNameEl = document.querySelector("#playerName");
     const exportReportButton = document.querySelector("#exportReport");
     const clearProgressButton = document.querySelector("#clearProgress");
+    const memberStatusEl = document.querySelector("#memberStatus");
+    const memberCopyEl = document.querySelector("#memberCopy");
+    const accessCodeEl = document.querySelector("#accessCode");
+    const activateMemberButton = document.querySelector("#activateMember");
+    const buyMemberButton = document.querySelector("#buyMember");
     const playModeEl = document.querySelector("#playMode");
     const knowledgeModeEl = document.querySelector("#knowledgeMode");
     const playModeButton = document.querySelector("#playModeButton");
@@ -961,6 +1026,7 @@
         streak: state.streak,
         history: state.history,
         completedLevels: Array.from(state.completedLevels),
+        isPremium: state.isPremium,
         knowledgeIndex: state.knowledgeIndex,
         knowledgeTotal: state.knowledgeTotal,
         knowledgeCorrect: state.knowledgeCorrect,
@@ -982,6 +1048,7 @@
         state.streak = Number.isFinite(payload.streak) ? payload.streak : 0;
         state.history = Array.isArray(payload.history) ? payload.history.slice(0, 7) : [];
         state.completedLevels = new Set(Array.isArray(payload.completedLevels) ? payload.completedLevels.filter(level => validLevels.includes(level)) : []);
+        state.isPremium = payload.isPremium === true;
         state.knowledgeIndex = Number.isFinite(payload.knowledgeIndex) ? Math.min(payload.knowledgeIndex, knowledgeQuestions.length - 1) : 0;
         state.knowledgeTotal = Number.isFinite(payload.knowledgeTotal) ? payload.knowledgeTotal : 0;
         state.knowledgeCorrect = Number.isFinite(payload.knowledgeCorrect) ? payload.knowledgeCorrect : 0;
@@ -992,6 +1059,44 @@
 
     function currentLevelInfo() {
       return levels.find(level => level.key === state.level) || levels[0];
+    }
+
+    function isPremiumLevel(levelKey) {
+      const level = levels.find(item => item.key === levelKey);
+      return level ? level.number >= premiumStartLevel : false;
+    }
+
+    function canAccessLevel(levelKey) {
+      return !isPremiumLevel(levelKey) || state.isPremium;
+    }
+
+    function renderMemberBox() {
+      memberStatusEl.classList.toggle("free", !state.isPremium);
+      memberStatusEl.textContent = state.isPremium ? "高级会员已解锁" : "免费体验版";
+      memberCopyEl.textContent = state.isPremium
+        ? "第 6-10 关翻后训练已解锁。后续可以接入微信、支付宝或小程序支付，把这里换成真实会员状态。"
+        : "免费版可练第 1-5 关。高级会员解锁第 6-10 关翻牌、转牌、河牌和整手牌线路训练。";
+      accessCodeEl.disabled = state.isPremium;
+      activateMemberButton.disabled = state.isPremium;
+      buyMemberButton.textContent = state.isPremium ? "已解锁高级训练" : "购买高级训练";
+    }
+
+    function activateMember() {
+      const code = accessCodeEl.value.trim().toUpperCase();
+      if (code !== demoAccessCode) {
+        setFeedback("激活码不对。", "当前演示激活码是 VIP2026。正式售卖时，这里会换成真实支付和账号会员校验。", "wrong");
+        return;
+      }
+      state.isPremium = true;
+      accessCodeEl.value = "";
+      renderMemberBox();
+      renderLevelList();
+      saveProgress();
+      setFeedback("高级训练已解锁。", "你现在可以在第 5 关达标后进入第 6-10 关翻后训练。", "correct");
+    }
+
+    function showBuyMessage() {
+      setFeedback("高级训练暂未接入支付。", "这是商业版入口预留位。现在可用激活码 VIP2026 体验第 6-10 关；正式售卖时接微信、支付宝、小程序或 App 内购。", "");
     }
 
     function reportText() {
@@ -1013,6 +1118,7 @@
         `当前关已练：${state.total} 题`,
         `当前关正确率：${playAccuracy}%`,
         `当前连对：${state.streak}`,
+        `会员状态：${state.isPremium ? "高级会员" : "免费体验版"}`,
         `已达标关卡：${completed.length ? completed.join("、") : "暂无"}`,
         "",
         "知识训练",
@@ -1057,10 +1163,13 @@
       state.streak = 0;
       state.history = [];
       state.completedLevels = new Set();
+      state.isPremium = false;
       state.knowledgeIndex = 0;
       state.knowledgeTotal = 0;
       state.knowledgeCorrect = 0;
       playerNameEl.value = "";
+      accessCodeEl.value = "";
+      renderMemberBox();
       renderStats();
       renderHistory();
       renderKnowledgeMap();
@@ -1637,8 +1746,11 @@
       const currentIndex = levels.findIndex(level => level.key === state.level);
       levelListEl.innerHTML = levels.map((level, index) => {
         const status = level.key === state.level ? "active" : state.completedLevels.has(level.key) ? "done" : "";
-        const prefix = level.key === state.level ? "正在练" : state.completedLevels.has(level.key) ? "已达标" : index < currentIndex ? "可复习" : "未解锁";
-        return `<li class="${status}"><strong>第 ${level.number} 关：${level.title}</strong><br>${prefix}｜进入下一关：${level.unlock}</li>`;
+        const premium = isPremiumLevel(level.key);
+        const lockedByMember = premium && !state.isPremium;
+        const prefix = lockedByMember ? "高级会员" : level.key === state.level ? "正在练" : state.completedLevels.has(level.key) ? "已达标" : index < currentIndex ? "可复习" : "未解锁";
+        const suffix = premium ? "｜高级训练" : "";
+        return `<li class="${status}"><strong>第 ${level.number} 关：${level.title}</strong><br>${prefix}｜进入下一关：${level.unlock}${suffix}</li>`;
       }).join("");
     }
 
@@ -1692,9 +1804,15 @@
         setFeedback("第四关达标。", "你已经完成面对 3-bet 的基础训练，可以进入第五关：盲注防守。", "correct");
       } else if (state.level === "blindDefense" && isGoalReached()) {
         state.completedLevels.add("blindDefense");
-        levelUpButton.textContent = "达标了，进入第六关";
-        levelUpButton.classList.add("show");
-        setFeedback("第五关达标。", "前五关翻前基础已经打通。下一关开始练翻牌 c-bet：下注还是过牌。", "correct");
+        if (state.isPremium) {
+          levelUpButton.textContent = "达标了，进入第六关";
+          levelUpButton.classList.add("show");
+          setFeedback("第五关达标。", "前五关翻前基础已经打通。下一关开始练翻牌 c-bet：下注还是过牌。", "correct");
+        } else {
+          levelUpButton.textContent = "解锁高级训练";
+          levelUpButton.classList.add("show");
+          setFeedback("第五关达标。", "前五关免费训练已经完成。第 6-10 关属于高级翻后训练，激活会员后可继续。", "correct");
+        }
       } else if (state.level === "flopCbet" && isGoalReached()) {
         state.completedLevels.add("flopCbet");
         levelUpButton.textContent = "达标了，进入第七关";
@@ -1793,7 +1911,12 @@
     function goToNextLevel() {
       const currentIndex = levels.findIndex(level => level.key === state.level);
       const nextLevel = levels[currentIndex + 1];
-      if (nextLevel) switchToLevel(nextLevel.key);
+      if (!nextLevel) return;
+      if (!canAccessLevel(nextLevel.key)) {
+        showBuyMessage();
+        return;
+      }
+      switchToLevel(nextLevel.key);
     }
 
     function resetSession() {
@@ -1907,9 +2030,12 @@
     });
     exportReportButton.addEventListener("click", exportReport);
     clearProgressButton.addEventListener("click", clearProgress);
+    activateMemberButton.addEventListener("click", activateMember);
+    buyMemberButton.addEventListener("click", showBuyMessage);
 
     loadProgress();
     playerNameEl.value = state.playerName;
+    renderMemberBox();
     renderKnowledgeMap();
     renderStats();
     renderHistory();
