@@ -158,6 +158,33 @@
       font-size: 22px;
     }
 
+    .product-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .product-point {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 11px 12px;
+      min-height: 76px;
+    }
+
+    .product-point strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .product-point span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
     main {
       display: grid;
       grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
@@ -432,6 +459,30 @@
       color: var(--ink);
     }
 
+    .offer-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .offer-list li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+      padding: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .offer-list strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
     .review-box {
       margin-top: 18px;
       padding: 12px;
@@ -648,6 +699,10 @@
         min-width: 0;
       }
 
+      .product-strip {
+        grid-template-columns: 1fr;
+      }
+
       main {
         grid-template-columns: 1fr;
       }
@@ -715,7 +770,7 @@
       <div>
         <h1>德州扑克训练器｜带娃读书运动育儿群专用</h1>
         <p class="group-tagline">带娃读书运动育儿群专用</p>
-        <p class="subtitle">闯关练翻前和翻后决策，知识训练补规则、术语和底层原因。</p>
+        <p class="subtitle">德州扑克决策训练器：练翻前范围、翻后下注和实战决策。</p>
         <nav class="app-switch" aria-label="训练板块">
           <button class="active" id="playModeButton" type="button">闯关训练</button>
           <button id="knowledgeModeButton" type="button">知识训练</button>
@@ -740,6 +795,21 @@
       <div class="stat"><span>已练</span><strong id="total">0</strong></div>
       <div class="stat"><span>连对</span><strong id="streak">0</strong></div>
     </div>
+
+    <section class="product-strip" aria-label="产品亮点">
+      <div class="product-point">
+        <strong>免费体验 1-5 关</strong>
+        <span>先打牢翻前入池、limp、open、3-bet 和盲注防守。</span>
+      </div>
+      <div class="product-point">
+        <strong>会员解锁翻后训练</strong>
+        <span>第 6-10 关练 c-bet、转牌、河牌和整手牌线路。</span>
+      </div>
+      <div class="product-point">
+        <strong>每题都有原因</strong>
+        <span>不只告诉你选什么，还解释牌力、位置、牌面和下注逻辑。</span>
+      </div>
+    </section>
 
     <main id="playMode">
       <section class="trainer" aria-label="训练区">
@@ -802,6 +872,13 @@
           <li>目标不是背到完美，而是先把明显亏钱的入池和跟注戒掉。</li>
         </ul>
 
+        <h2>会员权益</h2>
+        <ul class="offer-list">
+          <li><strong>免费体验</strong>第 1-5 关翻前基础训练，适合刚开始建立范围意识。</li>
+          <li><strong>高级训练</strong>第 6-10 关翻后下注、转牌、河牌和整手牌线路。</li>
+          <li><strong>内测邀请码</strong>当前可用 VIP2026、DWDS2026、POKER888 注册体验。</li>
+        </ul>
+
         <div class="review-box" id="dailyGoal">
           今天先做 30 题。正确率达到 75% 后，再把训练量提高到 50 题。
         </div>
@@ -811,6 +888,7 @@
         <ul class="history" id="history">
           <li>还没有记录。做完第一题后这里会显示你的选择。</li>
         </ul>
+        <button class="ghost side-action" id="reviewMistakes" type="button">查看错题复盘</button>
 
         <h2>训练报告</h2>
         <div class="select-wrap">
@@ -819,6 +897,7 @@
         </div>
         <button class="ghost side-action" id="exportReport" type="button">导出训练报告</button>
         <button class="ghost side-action" id="clearProgress" type="button">清空本机记录</button>
+        <button class="ghost side-action" id="privacyInfo" type="button">隐私与使用说明</button>
 
         <div class="legal-note">
           本工具只用于德州扑克策略学习和娱乐训练，不提供真钱游戏、赌博服务、赛事撮合或资金托管。
@@ -900,7 +979,10 @@
       { topic: "赔率", question: "底池赔率主要帮你判断什么？", options: ["跟注价格是否值得", "下一张牌一定是什么", "对手一定有没有牌"], answer: 0, explain: "底池赔率比较你要付的钱和能赢的底池，帮助决定听牌或边缘牌能不能跟。" },
       { topic: "赔率", question: "为什么“只要跟一个大盲看看”不一定划算？", options: ["弱牌翻后会持续犯错，便宜只是表面便宜", "因为 1bb 永远比 3bb 贵", "因为大盲注不能跟"], answer: 0, explain: "弱牌中弱对后会继续付钱，长期亏损往往发生在翻后，不只是翻前那 1bb。" },
       { topic: "常见错误", question: "新手桌最应该少做的事是什么？", options: ["用弱牌无计划跟注", "用强牌价值下注", "在后位用好牌加注"], answer: 0, explain: "新手亏得最多的是弱牌入池、中了弱对舍不得放、河牌不信对手。" },
-      { topic: "常见错误", question: "多人底池里诈唬为什么要减少？", options: ["对手人数多，至少一人有牌或愿意跟的概率更高", "多人底池不能下注", "多人底池牌力大小会改变"], answer: 0, explain: "面对多人，弃牌率下降，所以低级别多人底池更偏价值下注。" }
+      { topic: "常见错误", question: "多人底池里诈唬为什么要减少？", options: ["对手人数多，至少一人有牌或愿意跟的概率更高", "多人底池不能下注", "多人底池牌力大小会改变"], answer: 0, explain: "面对多人，弃牌率下降，所以低级别多人底池更偏价值下注。" },
+      { topic: "常见错误", question: "为什么训练器不应该承诺“包赢”？", options: ["扑克有波动，训练只能提升决策质量，不能保证每手牌结果", "因为强牌永远会输", "因为只要练习就不能下注"], answer: 0, explain: "专业训练的目标是减少长期错误、提升决策质量，而不是承诺短期结果。" },
+      { topic: "规则", question: "这个产品的正确定位是什么？", options: ["策略学习和娱乐训练工具", "真钱游戏入口", "代打和赛事撮合平台"], answer: 0, explain: "产品必须明确不提供真钱游戏、赌博服务、赛事撮合或资金托管，降低合规风险。" },
+      { topic: "位置", question: "复盘错题时最好先看什么？", options: ["位置和场景", "今天运气好不好", "牌面颜色好不好看"], answer: 0, explain: "同一手牌在不同位置、不同入池场景里答案会变，所以复盘先看位置和场景。" }
     ];
 
     const positions = {
@@ -1054,6 +1136,8 @@
     const playerNameEl = document.querySelector("#playerName");
     const exportReportButton = document.querySelector("#exportReport");
     const clearProgressButton = document.querySelector("#clearProgress");
+    const reviewMistakesButton = document.querySelector("#reviewMistakes");
+    const privacyInfoButton = document.querySelector("#privacyInfo");
     const memberStatusEl = document.querySelector("#memberStatus");
     const memberCopyEl = document.querySelector("#memberCopy");
     const registerNameEl = document.querySelector("#registerName");
@@ -1189,6 +1273,20 @@
         return;
       }
       setFeedback("会员登录说明。", "当前是本机注册版本：输入注册昵称和邀请码即可注册/恢复会员。内测邀请码：VIP2026、DWDS2026、POKER888。正式版会接手机号、验证码或微信登录。", "");
+    }
+
+    function reviewMistakes() {
+      const mistakes = state.history.filter(item => item.result === "错");
+      if (mistakes.length === 0) {
+        setFeedback("暂无错题。", "最近记录里没有错题。继续做题，一旦答错，这里会帮你整理要复盘的牌。", "correct");
+        return;
+      }
+      const lines = mistakes.map(item => `${item.text}：你选 ${item.action}，建议 ${item.correct}`).join("；");
+      setFeedback("错题复盘。", `${lines}。复盘重点：先看位置，再看场景，最后看这手牌有没有足够牌力、可玩性或下注理由。`, "wrong");
+    }
+
+    function showPrivacyInfo() {
+      setFeedback("隐私与使用说明。", "当前版本的昵称、会员状态和训练记录只保存在本机浏览器，不会自动上传服务器。产品仅用于策略学习和娱乐训练，不提供真钱游戏、赌博服务、赛事撮合或资金托管。", "");
     }
 
     function reportText() {
@@ -2130,6 +2228,8 @@
     });
     exportReportButton.addEventListener("click", exportReport);
     clearProgressButton.addEventListener("click", clearProgress);
+    reviewMistakesButton.addEventListener("click", reviewMistakes);
+    privacyInfoButton.addEventListener("click", showPrivacyInfo);
     activateMemberButton.addEventListener("click", activateMember);
     loginButton.addEventListener("click", showLoginMessage);
 
