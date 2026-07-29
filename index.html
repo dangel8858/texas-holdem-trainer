@@ -618,7 +618,7 @@
       <div>
         <h1>德州扑克训练器｜带娃读书运动育儿群专用</h1>
         <p class="group-tagline">带娃读书运动育儿群专用</p>
-        <p class="subtitle">闯关练翻前决策，知识训练补规则、术语和底层原因。</p>
+        <p class="subtitle">闯关练翻前和翻后决策，知识训练补规则、术语和底层原因。</p>
       </div>
       <div class="stats" id="statsPanel" aria-label="训练数据">
         <div class="stat"><span>正确率</span><strong id="accuracy">0%</strong></div>
@@ -751,9 +751,15 @@
       { key: "limp", number: 2, title: "有人 limp", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
       { key: "facingRaise", number: 3, title: "面对 open", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
       { key: "facing3bet", number: 4, title: "面对 3-bet", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
-      { key: "blindDefense", number: 5, title: "盲注防守", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" }
+      { key: "blindDefense", number: 5, title: "盲注防守", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "flopCbet", number: 6, title: "翻牌 c-bet", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "facingFlopBet", number: 7, title: "面对翻牌下注", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "turnBarrel", number: 8, title: "转牌继续下注", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "riverBet", number: 9, title: "河牌价值 / 诈唬", goal: { count: 50, accuracy: 75 }, unlock: "50 题，正确率 75%" },
+      { key: "linePlan", number: 10, title: "整手牌线路", goal: { count: 60, accuracy: 78 }, unlock: "60 题，正确率 78%" }
     ];
     const levelGoals = Object.fromEntries(levels.map(level => [level.key, level.goal]));
+    const postflopLevelKeys = ["flopCbet", "facingFlopBet", "turnBarrel", "riverBet", "linePlan"];
     const storageKey = "texasHoldemTrainerProgressV1";
     const knowledgeTopics = [
       { key: "rules", title: "规则", description: "行动顺序、盲注、摊牌和基本流程。" },
@@ -876,6 +882,19 @@
       BB: { pairMin: "2", suited: ["A9", "A8", "A7", "A6", "A5", "A4", "A3", "A2", "KT", "K9", "K8", "QT", "Q9", "Q8", "JT", "J9", "J8", "T9", "T8", "98", "97", "87", "86", "76", "65", "54"], offsuit: ["AT", "A9", "KJ", "KT", "QJ", "QT", "JT", "T9"] }
     };
 
+    const flopTemplates = [
+      { name: "A 高干燥面", ranks: ["A", "7", "2"], suitedCount: 1, texture: "dryHigh" },
+      { name: "K 高干燥面", ranks: ["K", "8", "3"], suitedCount: 1, texture: "dryHigh" },
+      { name: "Q 高连张面", ranks: ["Q", "J", "8"], suitedCount: 2, texture: "wetHigh" },
+      { name: "中低湿润面", ranks: ["9", "8", "6"], suitedCount: 2, texture: "wetLow" },
+      { name: "低干燥面", ranks: ["7", "3", "2"], suitedCount: 1, texture: "dryLow" },
+      { name: "对子公共牌面", ranks: ["T", "T", "4"], suitedCount: 1, texture: "paired" },
+      { name: "同花听牌面", ranks: ["A", "9", "4"], suitedCount: 2, texture: "flushDraw" }
+    ];
+
+    const turnCards = ["A", "K", "Q", "J", "T", "9", "6", "3"];
+    const riverCards = ["A", "K", "Q", "J", "T", "8", "5", "2"];
+
     const state = {
       level: "rfi",
       playerName: "",
@@ -907,6 +926,7 @@
     const modeEl = document.querySelector("#mode");
     const raiseButton = document.querySelector("#raise");
     const callButton = document.querySelector("#call");
+    const foldButton = document.querySelector("#fold");
     const nextButton = document.querySelector("#next");
     const actionsEl = document.querySelector(".actions");
     const levelUpButton = document.querySelector("#levelUp");
@@ -1082,7 +1102,12 @@
         limp: ["HJ", "CO", "BTN", "SB", "BB"],
         facingRaise: ["CO", "BTN", "SB", "BB"],
         facing3bet: ["CO", "BTN", "SB"],
-        blindDefense: ["SB", "BB"]
+        blindDefense: ["SB", "BB"],
+        flopCbet: ["HJ", "CO", "BTN", "SB", "BB"],
+        facingFlopBet: ["HJ", "CO", "BTN", "SB", "BB"],
+        turnBarrel: ["HJ", "CO", "BTN", "SB", "BB"],
+        riverBet: ["HJ", "CO", "BTN", "SB", "BB"],
+        linePlan: ["HJ", "CO", "BTN", "SB", "BB"]
       };
       const all = pools[state.level] || pools.rfi;
       if (mode === "all") return randomItem(all);
@@ -1122,7 +1147,119 @@
       return { cards: [first, second], hand: normalizeHand(first, second) };
     }
 
+    function cardKey(card) {
+      return `${card.rank}${card.suit.symbol}`;
+    }
+
+    function buildBoardCard(rank, usedCards, preferredSuit = null) {
+      let pool = preferredSuit ? suits.filter(suit => suit.symbol === preferredSuit.symbol) : suits;
+      let card = { rank, suit: randomItem(pool) };
+      let guard = 0;
+      while (usedCards.has(cardKey(card)) && guard < 40) {
+        card = { rank, suit: randomItem(suits) };
+        guard += 1;
+      }
+      usedCards.add(cardKey(card));
+      return card;
+    }
+
+    function dealBoard(holeCards, street) {
+      const template = randomItem(flopTemplates);
+      const usedCards = new Set(holeCards.map(cardKey));
+      const flushSuit = randomItem(suits);
+      const flop = template.ranks.map((rank, index) => (
+        buildBoardCard(rank, usedCards, index < template.suitedCount ? flushSuit : null)
+      ));
+      const board = [...flop];
+      if (street === "turn" || street === "river") {
+        board.push(buildBoardCard(randomItem(turnCards), usedCards));
+      }
+      if (street === "river") {
+        board.push(buildBoardCard(randomItem(riverCards), usedCards));
+      }
+      return { cards: board, texture: template.texture, textureName: template.name };
+    }
+
+    function boardText(board) {
+      return board.map(card => `${card.rank}${card.suit.symbol}`).join(" ");
+    }
+
+    function streetName() {
+      if (state.level === "turnBarrel") return "turn";
+      if (state.level === "riverBet" || state.level === "linePlan") return "river";
+      return "flop";
+    }
+
+    function countRank(cards, rank) {
+      return cards.filter(card => card.rank === rank).length;
+    }
+
+    function countSuit(cards, suitSymbol) {
+      return cards.filter(card => card.suit.symbol === suitSymbol).length;
+    }
+
+    function postflopProfile(hand, holeCards, board) {
+      const allCards = [...holeCards, ...board];
+      const boardHigh = board.reduce((best, card) => Math.max(best, rankValue[card.rank]), 0);
+      const holeHigh = Math.max(rankValue[hand.high], rankValue[hand.low]);
+      const boardMatches = holeCards.filter(card => board.some(boardCard => boardCard.rank === card.rank));
+      const pocketPairValue = hand.type === "pair" ? rankValue[hand.high] : 0;
+      const hasSet = hand.type === "pair" && countRank(board, hand.high) > 0;
+      const overpair = hand.type === "pair" && pocketPairValue > boardHigh;
+      const topPair = boardMatches.some(card => rankValue[card.rank] === boardHigh);
+      const anyPair = hand.type === "pair" || boardMatches.length > 0;
+      const twoPair = boardMatches.length === 2 || (boardMatches.length === 1 && board.some(card => countRank(board, card.rank) > 1));
+      const flushDraw = suits.some(suit => countSuit(allCards, suit.symbol) >= 4);
+      const ranksInHand = new Set(allCards.map(card => rankValue[card.rank]));
+      let straightDraw = false;
+      for (let start = 2; start <= 10; start += 1) {
+        const window = [start, start + 1, start + 2, start + 3, start + 4];
+        const hits = window.filter(value => ranksInHand.has(value)).length;
+        if (hits >= 4) straightDraw = true;
+      }
+      const overcards = !anyPair && holeCards.filter(card => rankValue[card.rank] > boardHigh).length >= 1;
+      const strongMade = hasSet || twoPair || overpair || (topPair && holeHigh >= rankValue["J"]);
+      const mediumMade = anyPair || hand.type === "pair";
+      const strongDraw = flushDraw || straightDraw;
+      return { boardHigh, hasSet, overpair, topPair, anyPair, twoPair, flushDraw, straightDraw, overcards, strongMade, mediumMade, strongDraw };
+    }
+
+    function decidePostflopAction(position, hand, cards, board, texture) {
+      const profile = postflopProfile(hand, cards, board);
+      const inPosition = ["CO", "BTN"].includes(position);
+      const dryBoard = ["dryHigh", "dryLow", "paired"].includes(texture);
+      const wetBoard = ["wetHigh", "wetLow", "flushDraw"].includes(texture);
+
+      if (state.level === "facingFlopBet") {
+        if (profile.strongMade || (profile.strongDraw && wetBoard)) return "raise";
+        if (profile.mediumMade || profile.strongDraw || (profile.overcards && inPosition)) return "call";
+        return "fold";
+      }
+
+      if (state.level === "turnBarrel") {
+        if (profile.strongMade || (profile.strongDraw && inPosition) || (dryBoard && profile.overcards)) return "raise";
+        return "call";
+      }
+
+      if (state.level === "riverBet") {
+        if (profile.strongMade || (inPosition && !profile.anyPair && ["A", "K", "Q"].includes(board[board.length - 1].rank))) return "raise";
+        return "call";
+      }
+
+      if (state.level === "linePlan") {
+        if (profile.strongMade || (profile.strongDraw && inPosition)) return "raise";
+        if (profile.mediumMade || profile.strongDraw) return "call";
+        return "fold";
+      }
+
+      if (profile.strongMade || profile.strongDraw || (dryBoard && (inPosition || profile.overcards))) return "raise";
+      return "call";
+    }
+
     function decideAction(position, hand) {
+      if (postflopLevelKeys.includes(state.level)) {
+        return decidePostflopAction(position, hand, state.current.cards, state.current.board, state.current.texture);
+      }
       if (state.level === "rfi") {
         return isInRange(position, hand) ? "raise" : "fold";
       }
@@ -1152,35 +1289,46 @@
       const limpers = state.level === "limp" ? Math.floor(Math.random() * 3) + 1 : 0;
       const opener = ["facingRaise", "blindDefense"].includes(state.level) ? chooseOpener(position) : "";
       const threeBetter = state.level === "facing3bet" ? chooseThreeBetter(position) : "";
+      const postflop = postflopLevelKeys.includes(state.level) ? dealBoard(dealt.cards, streetName()) : null;
       state.current = {
         position,
         cards: dealt.cards,
         hand: dealt.hand,
+        board: postflop ? postflop.cards : [],
+        texture: postflop ? postflop.texture : "",
+        textureName: postflop ? postflop.textureName : "",
         limpers,
         opener,
         threeBetter,
-        correctChoice: decideAction(position, dealt.hand)
+        correctChoice: ""
       };
+      state.current.correctChoice = decideAction(position, dealt.hand);
       state.answered = false;
       renderQuestion();
-      const prompt = state.level === "rfi"
-        ? "判断这手牌在当前位置是否适合无人入池时开局加注。"
-        : state.level === "limp"
-          ? `前面有 ${limpers} 人 limp，判断你应该加注、跟入还是弃牌。`
-          : state.level === "facingRaise"
-            ? `${opener} open 到 3bb，判断你应该 3-bet、跟注还是弃牌。`
-            : state.level === "facing3bet"
-              ? `你 open 后，${threeBetter} 3-bet，判断你应该 4-bet、跟注还是弃牌。`
-              : `${opener} open 到 3bb，你在盲注位，判断你应该 3-bet、跟注还是弃牌。`;
+      const prompt = questionPrompt();
       setFeedback("先做选择。", prompt, "");
       updateNextButton();
     }
 
+    function questionPrompt() {
+      const { limpers, opener, threeBetter, board, textureName } = state.current;
+      if (state.level === "rfi") return "判断这手牌在当前位置是否适合无人入池时开局加注。";
+      if (state.level === "limp") return `前面有 ${limpers} 人 limp，判断你应该加注、跟入还是弃牌。`;
+      if (state.level === "facingRaise") return `${opener} open 到 3bb，判断你应该 3-bet、跟注还是弃牌。`;
+      if (state.level === "facing3bet") return `你 open 后，${threeBetter} 3-bet，判断你应该 4-bet、跟注还是弃牌。`;
+      if (state.level === "blindDefense") return `${opener} open 到 3bb，你在盲注位，判断你应该 3-bet、跟注还是弃牌。`;
+      if (state.level === "flopCbet") return `你翻前加注，翻牌 ${boardText(board)}（${textureName}），判断应该下注还是过牌。`;
+      if (state.level === "facingFlopBet") return `对手翻牌下注，牌面 ${boardText(board)}，判断应该加注、跟注还是弃牌。`;
+      if (state.level === "turnBarrel") return `你翻牌下注后被跟，转牌来到 ${boardText(board)}，判断第二枪下注还是过牌控池。`;
+      if (state.level === "riverBet") return `河牌来到 ${boardText(board)}，判断最后一枪要不要下注。`;
+      return `整手牌来到河牌 ${boardText(board)}，判断这手牌适合进攻、控池还是放弃。`;
+    }
+
     function renderQuestion() {
-      const { position, cards, hand, limpers, opener, threeBetter } = state.current;
+      const { position, cards, hand, board, textureName, limpers, opener, threeBetter } = state.current;
       positionEl.textContent = position;
       positionHintEl.textContent = positions[position].hint;
-      handCodeEl.textContent = hand.code;
+      handCodeEl.textContent = postflopLevelKeys.includes(state.level) ? `${hand.code}｜公共牌 ${boardText(board)}` : hand.code;
       if (state.level === "rfi") {
         scenarioTitleEl.textContent = "无人入池";
         scenarioSubtitleEl.textContent = "轮到你行动";
@@ -1193,18 +1341,63 @@
       } else if (state.level === "facing3bet") {
         scenarioTitleEl.textContent = `${threeBetter} 3-bet`;
         scenarioSubtitleEl.textContent = "你开局后被再加注";
-      } else {
+      } else if (state.level === "blindDefense") {
         scenarioTitleEl.textContent = `${opener} open`;
         scenarioSubtitleEl.textContent = "你在盲注位防守";
+      } else if (state.level === "flopCbet") {
+        scenarioTitleEl.textContent = "翻牌 c-bet";
+        scenarioSubtitleEl.textContent = `${boardText(board)}｜${textureName}`;
+      } else if (state.level === "facingFlopBet") {
+        scenarioTitleEl.textContent = "面对翻牌下注";
+        scenarioSubtitleEl.textContent = `${boardText(board)}｜对手下注`;
+      } else if (state.level === "turnBarrel") {
+        scenarioTitleEl.textContent = "转牌第二枪";
+        scenarioSubtitleEl.textContent = boardText(board);
+      } else if (state.level === "riverBet") {
+        scenarioTitleEl.textContent = "河牌下注";
+        scenarioSubtitleEl.textContent = boardText(board);
+      } else {
+        scenarioTitleEl.textContent = "整手牌线路";
+        scenarioSubtitleEl.textContent = boardText(board);
       }
-      raiseButton.textContent = state.level === "facing3bet" ? "4-bet" : ["facingRaise", "blindDefense"].includes(state.level) ? "3-bet" : "加注";
-      callButton.classList.toggle("hidden", state.level === "rfi");
-      actionsEl.classList.toggle("limp-actions", state.level !== "rfi");
+      setActionButtons();
       cardsEl.innerHTML = cards.map(card => (
         `<div class="card ${card.suit.color}" aria-label="${card.rank}${card.suit.symbol}">${card.rank}${card.suit.symbol}</div>`
       )).join("");
       updateGoalText();
       renderLevelList();
+    }
+
+    function setActionButtons() {
+      raiseButton.textContent = state.level === "facing3bet" ? "4-bet" : ["facingRaise", "blindDefense"].includes(state.level) ? "3-bet" : "加注";
+      callButton.textContent = "跟入";
+      foldButton.textContent = "弃牌";
+      callButton.classList.toggle("hidden", state.level === "rfi");
+      foldButton.classList.remove("hidden");
+
+      if (state.level === "flopCbet") {
+        raiseButton.textContent = "下注";
+        callButton.textContent = "过牌";
+        foldButton.classList.add("hidden");
+      } else if (state.level === "turnBarrel") {
+        raiseButton.textContent = "继续下注";
+        callButton.textContent = "过牌控池";
+        foldButton.classList.add("hidden");
+      } else if (state.level === "riverBet") {
+        raiseButton.textContent = "下注";
+        callButton.textContent = "过牌";
+        foldButton.classList.add("hidden");
+      } else if (state.level === "linePlan") {
+        raiseButton.textContent = "进攻";
+        callButton.textContent = "控池";
+        foldButton.textContent = "放弃";
+      } else if (state.level === "facingFlopBet") {
+        raiseButton.textContent = "加注";
+        callButton.textContent = "跟注";
+        foldButton.textContent = "弃牌";
+      }
+
+      actionsEl.classList.toggle("limp-actions", state.level !== "rfi" && !["flopCbet", "turnBarrel", "riverBet"].includes(state.level));
     }
 
     function setFeedback(title, message, status) {
@@ -1213,7 +1406,15 @@
     }
 
     function actionLabel(action) {
+      if (action === "call" && ["flopCbet", "riverBet"].includes(state.level)) return "过牌";
+      if (action === "call" && state.level === "turnBarrel") return "过牌控池";
+      if (action === "call" && state.level === "facingFlopBet") return "跟注";
+      if (action === "call" && state.level === "linePlan") return "控池";
+      if (action === "fold" && state.level === "linePlan") return "放弃";
       if (action !== "raise") return actionNames[action];
+      if (state.level === "flopCbet" || state.level === "riverBet") return "下注";
+      if (state.level === "turnBarrel") return "继续下注";
+      if (state.level === "linePlan") return "进攻";
       if (state.level === "facing3bet") return "4-bet";
       if (["facingRaise", "blindDefense"].includes(state.level)) return "3-bet";
       return actionNames[action];
@@ -1228,6 +1429,17 @@
     }
 
     function handReason(hand, action) {
+      if (postflopLevelKeys.includes(state.level)) {
+        const profile = postflopProfile(hand, state.current.cards, state.current.board);
+        if (profile.hasSet || profile.twoPair) return "两对以上属于强成牌，翻后通常要主动拿价值。";
+        if (profile.overpair) return "口袋对子高过公共牌，属于超对，通常领先很多一对牌和听牌。";
+        if (profile.topPair) return "顶对有摊牌价值，但踢脚和牌面湿润度会决定能打多大。";
+        if (profile.flushDraw && profile.straightDraw) return "同时有同花和顺子听牌，属于强听牌，可以半诈唬。";
+        if (profile.flushDraw) return "四张同花形成同花听牌，下注或跟注都要看价格和位置。";
+        if (profile.straightDraw) return "顺子听牌有改善空间，但没成牌前不能把它当成已经赢。";
+        if (profile.overcards) return "高张没中牌时只算后门潜力，不能因为有大牌就一路硬打。";
+        return "这手牌没有明显成牌或强听牌，翻后最重要的是少投入无计划的钱。";
+      }
       if (hand.type === "pair") {
         if (action === "raise") return "口袋对子有成套潜力，中高对子还能直接拿价值，适合主动加注。";
         if (action === "call") return "小对子主要靠中三条赢大底池，多人 limp 时便宜跟入可以，但不要打成追输。";
@@ -1293,6 +1505,9 @@
     }
 
     function scenarioReason(action) {
+      if (postflopLevelKeys.includes(state.level)) {
+        return postflopReason(action);
+      }
       if (state.level === "rfi") {
         return action === "raise"
           ? "前面没人入池时，能玩的牌优先加注，不要 limp，这样你有主动权。"
@@ -1318,6 +1533,42 @@
       return "前面有人 limp 不代表你也要跟，弱牌进多人底池通常只是在买麻烦。";
     }
 
+    function postflopReason(action) {
+      const { position, hand, cards, board, texture, textureName } = state.current;
+      const profile = postflopProfile(hand, cards, board);
+      const inPosition = ["CO", "BTN"].includes(position);
+      const boardSummary = `${textureName}：${boardText(board)}。`;
+
+      if (state.level === "flopCbet") {
+        if (action === "raise") {
+          if (profile.strongMade) return `${boardSummary}你有强成牌或顶对好踢脚，下注可以拿价值，也保护牌力。`;
+          if (profile.strongDraw) return `${boardSummary}你有强听牌，下注既有直接赢底池的机会，也有转牌改善的后路。`;
+          return `${boardSummary}这种干燥高牌面更有利于翻前加注者，小注 c-bet 经常能拿下底池。`;
+        }
+        return `${boardSummary}你的牌缺少成牌和后门潜力，湿润或低连张面更容易击中对手，过牌能少烧钱。`;
+      }
+
+      if (state.level === "facingFlopBet") {
+        if (action === "raise") return `${boardSummary}你有强成牌或强听牌，可以加注拿价值或打出弃牌率。`;
+        if (action === "call") return `${boardSummary}这手牌有一对、听牌或位置优势，跟注比直接弃牌更合理。`;
+        return `${boardSummary}没有成牌、没有好听牌，也缺少位置优势，弃牌是避免翻后连续亏损的关键。`;
+      }
+
+      if (state.level === "turnBarrel") {
+        if (action === "raise") return `${boardSummary}转牌后你的牌仍有价值或听牌压力，可以继续下注让差牌付钱。`;
+        return `${boardSummary}转牌继续下注需要理由；中等牌力或空气牌过牌控池，可以避免把底池打得过大。`;
+      }
+
+      if (state.level === "riverBet") {
+        if (action === "raise") return `${boardSummary}河牌下注要么是价值，要么是有可信故事的诈唬；这手牌具备其中一个条件。`;
+        return `${boardSummary}河牌已经没有下一张牌可追，边缘牌过牌摊牌，比无计划下注更稳。`;
+      }
+
+      if (action === "raise") return `${boardSummary}整手牌线路里，你有足够牌力或强听牌支撑主动进攻。`;
+      if (action === "call") return `${boardSummary}这类牌适合控池，保留摊牌价值，不要把中等牌打成大底池。`;
+      return `${boardSummary}从翻前到河牌都缺少清晰价值和诈唬理由，放弃能保护筹码。`;
+    }
+
     function makeExplanation(action) {
       const { position, hand, limpers, opener, threeBetter } = state.current;
       const scene = state.level === "rfi"
@@ -1328,7 +1579,9 @@
             ? `${opener} open 到 3bb`
             : state.level === "facing3bet"
               ? `你 open 后，${threeBetter} 3-bet`
-              : `${opener} open 到 3bb，你在盲注位`;
+              : state.level === "blindDefense"
+                ? `${opener} open 到 3bb，你在盲注位`
+                : currentLevelInfo().title;
       return `${scene}，${position} 拿 ${hand.code}，建议${actionBadge(action)}。${handStrengthLabel(hand)}${scenarioReason(action)}${handReason(hand, action)}`;
     }
 
@@ -1400,8 +1653,18 @@
         dailyGoalEl.textContent = `第三关：面对别人 open。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练 3-bet、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
       } else if (state.level === "facing3bet") {
         dailyGoalEl.textContent = `第四关：面对 3-bet。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练 4-bet、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
-      } else {
+      } else if (state.level === "blindDefense") {
         dailyGoalEl.textContent = `第五关：盲注防守。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练盲注位 3-bet、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "flopCbet") {
+        dailyGoalEl.textContent = `第六关：翻牌 c-bet。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练哪些牌面该下注，哪些牌面该过牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "facingFlopBet") {
+        dailyGoalEl.textContent = `第七关：面对翻牌下注。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练加注、跟注和弃牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "turnBarrel") {
+        dailyGoalEl.textContent = `第八关：转牌继续下注。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练第二枪和过牌控池。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else if (state.level === "riverBet") {
+        dailyGoalEl.textContent = `第九关：河牌价值 / 诈唬。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练价值下注、诈唬和过牌摊牌。当前 ${state.total} 题，正确率 ${accuracy}%。`;
+      } else {
+        dailyGoalEl.textContent = `第十关：整手牌线路。目标 ${goal.count} 题，正确率 ${goal.accuracy}% 以上。重点练从翻前到河牌的整体思路。当前 ${state.total} 题，正确率 ${accuracy}%。`;
       }
       renderLevelList();
     }
@@ -1429,8 +1692,33 @@
         setFeedback("第四关达标。", "你已经完成面对 3-bet 的基础训练，可以进入第五关：盲注防守。", "correct");
       } else if (state.level === "blindDefense" && isGoalReached()) {
         state.completedLevels.add("blindDefense");
+        levelUpButton.textContent = "达标了，进入第六关";
+        levelUpButton.classList.add("show");
+        setFeedback("第五关达标。", "前五关翻前基础已经打通。下一关开始练翻牌 c-bet：下注还是过牌。", "correct");
+      } else if (state.level === "flopCbet" && isGoalReached()) {
+        state.completedLevels.add("flopCbet");
+        levelUpButton.textContent = "达标了，进入第七关";
+        levelUpButton.classList.add("show");
+        setFeedback("第六关达标。", "你已经完成翻牌 c-bet 基础训练，可以进入第七关：面对对手翻牌下注。", "correct");
+      } else if (state.level === "facingFlopBet" && isGoalReached()) {
+        state.completedLevels.add("facingFlopBet");
+        levelUpButton.textContent = "达标了，进入第八关";
+        levelUpButton.classList.add("show");
+        setFeedback("第七关达标。", "你已经开始能处理翻牌下注压力，可以进入第八关：转牌继续下注。", "correct");
+      } else if (state.level === "turnBarrel" && isGoalReached()) {
+        state.completedLevels.add("turnBarrel");
+        levelUpButton.textContent = "达标了，进入第九关";
+        levelUpButton.classList.add("show");
+        setFeedback("第八关达标。", "你已经完成转牌第二枪训练，可以进入第九关：河牌价值下注和诈唬。", "correct");
+      } else if (state.level === "riverBet" && isGoalReached()) {
+        state.completedLevels.add("riverBet");
+        levelUpButton.textContent = "达标了，进入第十关";
+        levelUpButton.classList.add("show");
+        setFeedback("第九关达标。", "你已经完成河牌下注训练，可以进入第十关：整手牌线路判断。", "correct");
+      } else if (state.level === "linePlan" && isGoalReached()) {
+        state.completedLevels.add("linePlan");
         levelUpButton.classList.remove("show");
-        setFeedback("第五关达标。", "前五关翻前基础已经打通。下一阶段可以开始练翻牌 c-bet 和面对 c-bet。", "correct");
+        setFeedback("第十关达标。", "翻前到翻后的第一轮训练已经打通。下一阶段可以开始加多人底池、筹码深度和对手类型。", "correct");
       } else {
         levelUpButton.classList.remove("show");
       }
@@ -1489,16 +1777,23 @@
       saveProgress();
     }
 
+    function switchToLevel(levelKey) {
+      state.level = levelKey;
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.history = [];
+      levelUpButton.classList.remove("show");
+      renderStats();
+      renderHistory();
+      nextQuestion();
+      saveProgress();
+    }
+
     function goToNextLevel() {
-      if (state.level === "rfi") {
-        switchToLimpLevel();
-      } else if (state.level === "limp") {
-        switchToFacingRaiseLevel();
-      } else if (state.level === "facingRaise") {
-        switchToFacing3betLevel();
-      } else if (state.level === "facing3bet") {
-        switchToBlindDefenseLevel();
-      }
+      const currentIndex = levels.findIndex(level => level.key === state.level);
+      const nextLevel = levels[currentIndex + 1];
+      if (nextLevel) switchToLevel(nextLevel.key);
     }
 
     function resetSession() {
