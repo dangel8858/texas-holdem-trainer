@@ -41,9 +41,9 @@
     }
 
     header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
       gap: 18px;
       padding: 10px 0 22px;
       border-bottom: 1px solid var(--line);
@@ -79,8 +79,51 @@
     .app-switch {
       display: flex;
       gap: 8px;
-      margin: 18px 0 0;
+      margin: 14px 0 0;
       flex-wrap: wrap;
+    }
+
+    .top-account {
+      width: min(420px, 42vw);
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 10px 24px rgba(25, 36, 28, 0.08);
+      display: grid;
+      gap: 9px;
+    }
+
+    .account-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .login-button {
+      min-height: 34px;
+      padding: 7px 12px;
+      background: #17201a;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .register-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .register-form input,
+    .register-form button {
+      min-height: 38px;
+    }
+
+    .top-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
     }
 
     .app-switch button {
@@ -593,8 +636,12 @@
 
     @media (max-width: 860px) {
       header {
+        grid-template-columns: 1fr;
         align-items: stretch;
-        flex-direction: column;
+      }
+
+      .top-account {
+        width: 100%;
       }
 
       .stats {
@@ -652,6 +699,10 @@
         font-size: 25px;
       }
 
+      .register-form {
+        grid-template-columns: 1fr;
+      }
+
       .position {
         font-size: 40px;
       }
@@ -665,18 +716,30 @@
         <h1>德州扑克训练器｜带娃读书运动育儿群专用</h1>
         <p class="group-tagline">带娃读书运动育儿群专用</p>
         <p class="subtitle">闯关练翻前和翻后决策，知识训练补规则、术语和底层原因。</p>
+        <nav class="app-switch" aria-label="训练板块">
+          <button class="active" id="playModeButton" type="button">闯关训练</button>
+          <button id="knowledgeModeButton" type="button">知识训练</button>
+        </nav>
       </div>
-      <div class="stats" id="statsPanel" aria-label="训练数据">
-        <div class="stat"><span>正确率</span><strong id="accuracy">0%</strong></div>
-        <div class="stat"><span>已练</span><strong id="total">0</strong></div>
-        <div class="stat"><span>连对</span><strong id="streak">0</strong></div>
+      <div class="top-account" aria-label="会员注册登录">
+        <div class="account-head">
+          <span class="member-status free" id="memberStatus">免费体验版</span>
+          <button class="login-button" id="loginButton" type="button">LOGIN</button>
+        </div>
+        <div class="register-form">
+          <input id="registerName" type="text" placeholder="注册昵称">
+          <input id="accessCode" type="text" placeholder="邀请码">
+          <button class="ghost" id="activateMember" type="button">注册</button>
+        </div>
+        <div class="top-meta" id="memberCopy">有邀请码的人可以注册会员，解锁第 6-10 关翻后训练。</div>
       </div>
     </header>
 
-    <nav class="app-switch" aria-label="训练板块">
-      <button class="active" id="playModeButton" type="button">闯关训练</button>
-      <button id="knowledgeModeButton" type="button">知识训练</button>
-    </nav>
+    <div class="stats" id="statsPanel" aria-label="训练数据">
+      <div class="stat"><span>正确率</span><strong id="accuracy">0%</strong></div>
+      <div class="stat"><span>已练</span><strong id="total">0</strong></div>
+      <div class="stat"><span>连对</span><strong id="streak">0</strong></div>
+    </div>
 
     <main id="playMode">
       <section class="trainer" aria-label="训练区">
@@ -743,20 +806,6 @@
           今天先做 30 题。正确率达到 75% 后，再把训练量提高到 50 题。
         </div>
         <button class="ghost side-action" id="jumpLimp" type="button">测试入口：直接练第二关</button>
-
-        <h2>会员训练</h2>
-        <div class="member-box">
-          <span class="member-status free" id="memberStatus">免费体验版</span>
-          <div id="memberCopy">有邀请码的人可以注册会员，解锁第 6-10 关翻后训练。</div>
-          <div class="member-row single">
-            <input id="registerName" type="text" placeholder="注册昵称">
-          </div>
-          <div class="member-row">
-            <input id="accessCode" type="text" placeholder="输入邀请码">
-            <button class="ghost" id="activateMember" type="button">注册</button>
-          </div>
-          <button class="ghost" id="buyMember" type="button">购买高级训练</button>
-        </div>
 
         <h2>最近记录</h2>
         <ul class="history" id="history">
@@ -1010,7 +1059,7 @@
     const registerNameEl = document.querySelector("#registerName");
     const accessCodeEl = document.querySelector("#accessCode");
     const activateMemberButton = document.querySelector("#activateMember");
-    const buyMemberButton = document.querySelector("#buyMember");
+    const loginButton = document.querySelector("#loginButton");
     const playModeEl = document.querySelector("#playMode");
     const knowledgeModeEl = document.querySelector("#knowledgeMode");
     const playModeButton = document.querySelector("#playModeButton");
@@ -1096,7 +1145,7 @@
       registerNameEl.disabled = state.isPremium;
       accessCodeEl.disabled = state.isPremium;
       activateMemberButton.disabled = state.isPremium;
-      buyMemberButton.textContent = state.isPremium ? "已解锁高级训练" : "购买 / 获取邀请码";
+      loginButton.textContent = state.isPremium ? "已登录" : "LOGIN";
     }
 
     function createMemberId(name) {
@@ -1134,8 +1183,12 @@
       setFeedback("注册成功。", `欢迎 ${name}，你的会员编号是 ${state.memberId}。第 6-10 关高级翻后训练已解锁。`, "correct");
     }
 
-    function showBuyMessage() {
-      setFeedback("邀请码注册暂未接入支付。", "现在支持内测邀请码：VIP2026、DWDS2026、POKER888。正式售卖时，这里可以接支付后自动发码、后台开通或 App 内购。", "");
+    function showLoginMessage() {
+      if (state.isPremium) {
+        setFeedback("你已登录会员。", `当前会员：${state.playerName || "未命名"}，会员编号：${state.memberId || "本机会员"}。`, "correct");
+        return;
+      }
+      setFeedback("会员登录说明。", "当前是本机注册版本：输入注册昵称和邀请码即可注册/恢复会员。内测邀请码：VIP2026、DWDS2026、POKER888。正式版会接手机号、验证码或微信登录。", "");
     }
 
     function reportText() {
@@ -1959,7 +2012,7 @@
       const nextLevel = levels[currentIndex + 1];
       if (!nextLevel) return;
       if (!canAccessLevel(nextLevel.key)) {
-        showBuyMessage();
+        showLoginMessage();
         return;
       }
       switchToLevel(nextLevel.key);
@@ -2078,7 +2131,7 @@
     exportReportButton.addEventListener("click", exportReport);
     clearProgressButton.addEventListener("click", clearProgress);
     activateMemberButton.addEventListener("click", activateMember);
-    buyMemberButton.addEventListener("click", showBuyMessage);
+    loginButton.addEventListener("click", showLoginMessage);
 
     loadProgress();
     playerNameEl.value = state.playerName;
